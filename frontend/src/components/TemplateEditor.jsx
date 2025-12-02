@@ -4,10 +4,71 @@ import React, { useState } from 'react'
  * TemplateEditor Component
  * Allows editing email subject and body with dynamic field insertion
  */
-const TemplateEditor = ({ initialSubject, initialHtmlBody, onSave, onCancel }) => {
+const TemplateEditor = ({ initialSubject, initialHtmlBody, customers, onSave, onCancel }) => {
+  // Helper function to extract plain text from HTML
+  const extractTextFromHtml = (html) => {
+    if (!html) return ''
+    
+    // Create a temporary div to parse HTML
+    const temp = document.createElement('div')
+    temp.innerHTML = html
+    
+    // Get text content and clean it up
+    let text = temp.textContent || temp.innerText || ''
+    
+    // Remove excessive whitespace and newlines
+    text = text
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0)
+      .join('\n\n')
+    
+    return text
+  }
+
+  // Helper function to convert plain text to simple HTML
+  const textToHtml = (text) => {
+    if (!text) return ''
+    
+    // Split into paragraphs
+    const paragraphs = text.split('\n\n').filter(p => p.trim())
+    
+    // Convert to HTML paragraphs
+    const htmlParagraphs = paragraphs.map(para => {
+      // Check if it's a list
+      const lines = para.split('\n')
+      if (lines.some(line => line.trim().match(/^[-*•]/) || line.trim().match(/^\d+\./))) {
+        const listItems = lines
+          .map(line => {
+            const cleaned = line.trim().replace(/^[-*•]\s*/, '').replace(/^\d+\.\s*/, '')
+            return cleaned ? `<li>${cleaned}</li>` : ''
+          })
+          .filter(Boolean)
+          .join('')
+        return `<ul style="margin: 10px 0;">${listItems}</ul>`
+      }
+      
+      // Regular paragraph with line breaks preserved
+      const withBreaks = para.replace(/\n/g, '<br>')
+      return `<p style="margin: 10px 0;">${withBreaks}</p>`
+    })
+    
+    return `<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        ${htmlParagraphs.join('\n')}
+    </div>
+</body>
+</html>`
+  }
+
   const [subject, setSubject] = useState(initialSubject || '')
-  const [htmlBody, setHtmlBody] = useState(initialHtmlBody || '')
+  const [textBody, setTextBody] = useState(extractTextFromHtml(initialHtmlBody))
   const [showPreview, setShowPreview] = useState(false)
+
+  // Check if we have a single customer to show details
+  const isSingleCustomer = customers && customers.length === 1
+  const customerData = isSingleCustomer ? customers[0] : null
 
   const dynamicFields = [
     { name: 'name', label: 'Customer Name', example: 'Rahim Ahmed' },
@@ -24,11 +85,13 @@ const TemplateEditor = ({ initialSubject, initialHtmlBody, onSave, onCancel }) =
     if (target === 'subject') {
       setSubject(subject + placeholder)
     } else {
-      setHtmlBody(htmlBody + placeholder)
+      setTextBody(textBody + placeholder)
     }
   }
 
   const handleSave = () => {
+    // Convert plain text back to HTML before saving
+    const htmlBody = textToHtml(textBody)
     onSave({ subject, html_body: htmlBody })
   }
 
@@ -46,7 +109,7 @@ const TemplateEditor = ({ initialSubject, initialHtmlBody, onSave, onCancel }) =
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className={`grid grid-cols-1 ${customers && customers.length > 0 ? 'lg:grid-cols-4' : 'lg:grid-cols-1'} gap-6`}>
         {/* Editor Section */}
         <div className="lg:col-span-3 space-y-4">
           {/* Subject Editor */}
@@ -66,14 +129,17 @@ const TemplateEditor = ({ initialSubject, initialHtmlBody, onSave, onCancel }) =
           {/* Body Editor */}
           <div>
             <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-2">
-              Email Body (HTML)
+              Email Body
             </label>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-2">
+              Write your email in plain text. Use double line breaks for paragraphs. Lists starting with - or * will be formatted automatically.
+            </p>
             <textarea
-              value={htmlBody}
-              onChange={(e) => setHtmlBody(e.target.value)}
-              placeholder="Enter email body..."
+              value={textBody}
+              onChange={(e) => setTextBody(e.target.value)}
+              placeholder="Enter email body in plain text..."
               rows={20}
-              className="w-full px-4 py-2 border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-light-text-primary dark:text-dark-text-primary rounded-lg focus:ring-2 focus:ring-primary-teal focus:border-transparent font-mono text-sm"
+              className="w-full px-4 py-2 border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface text-light-text-primary dark:text-dark-text-primary rounded-lg focus:ring-2 focus:ring-primary-teal focus:border-transparent text-sm"
             />
           </div>
 
@@ -81,11 +147,12 @@ const TemplateEditor = ({ initialSubject, initialHtmlBody, onSave, onCancel }) =
           {showPreview && (
             <div className="border border-light-border dark:border-dark-border rounded-lg p-4">
               <h3 className="font-semibold mb-2 text-light-text-primary dark:text-dark-text-primary">Preview:</h3>
-              <div className="bg-light-bg dark:bg-dark-bg p-4 rounded">
-                <div className="mb-4 text-light-text-primary dark:text-dark-text-primary">
-                  <strong>Subject:</strong> {subject}
+              <div className="bg-white dark:bg-gray-800 p-4 rounded shadow-sm">
+                <div className="mb-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Subject:</div>
+                  <div className="font-semibold text-light-text-primary dark:text-dark-text-primary">{subject}</div>
                 </div>
-                <div className="text-light-text-primary dark:text-dark-text-primary" dangerouslySetInnerHTML={{ __html: htmlBody }} />
+                <div className="text-light-text-primary dark:text-dark-text-primary" dangerouslySetInnerHTML={{ __html: textToHtml(textBody) }} />
               </div>
             </div>
           )}
@@ -107,45 +174,70 @@ const TemplateEditor = ({ initialSubject, initialHtmlBody, onSave, onCancel }) =
           </div>
         </div>
 
-        {/* Dynamic Fields Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-4">
-            <h3 className="text-sm font-semibold text-light-text-primary dark:text-dark-text-primary mb-3">
-              Dynamic Fields
-            </h3>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-4">
-              Click to insert a field placeholder. It will be replaced with actual customer data.
-            </p>
-            <div className="space-y-2">
-              {dynamicFields.map((field) => (
-                <div key={field.name} className="bg-light-bg dark:bg-dark-bg rounded-lg p-3 border border-light-border dark:border-dark-border">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-sm font-medium text-light-text-primary dark:text-dark-text-primary">
-                      {field.label}
-                    </span>
+        {/* Customer Details Sidebar - Only show if we have customers */}
+        {customers && customers.length > 0 && (
+          <div className="lg:col-span-1">
+            <div className="sticky top-4 space-y-4">
+              {isSingleCustomer ? (
+                /* Single Customer - Show actual data */
+                <>
+                  <div className="bg-gradient-to-br from-primary-teal/10 to-primary-mauve/10 rounded-lg p-4 border border-primary-teal/20 dark:border-primary-teal/30">
+                    <h3 className="text-sm font-semibold text-light-text-primary dark:text-dark-text-primary mb-2 flex items-center gap-2">
+                      <span className="text-lg">👤</span>
+                      Customer Details
+                    </h3>
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                      Editing email for this customer. The template shows their actual data.
+                    </p>
                   </div>
-                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-2">
-                    Example: {field.example}
+
+                  <div className="bg-light-bg dark:bg-dark-bg rounded-lg p-4 border border-light-border dark:border-dark-border">
+                    <h4 className="text-sm font-semibold text-light-text-primary dark:text-dark-text-primary mb-3">
+                      Customer Information
+                    </h4>
+                    <div className="space-y-3">
+                      {[
+                        { label: 'Name', value: customerData?.name || 'N/A', icon: '👤' },
+                        { label: 'Email', value: customerData?.email || 'N/A', icon: '📧' },
+                        { label: 'Phone', value: customerData?.phone || 'N/A', icon: '📱' },
+                        { label: 'Segment', value: customerData?.segment_id || 'N/A', icon: '🏷️' },
+                        { label: 'Churn Score', value: customerData?.churn_score?.toFixed(2) || 'N/A', icon: '📊' },
+                        { label: 'Purchase Amount', value: customerData?.custom_fields?.purchase_amount ? `৳${customerData.custom_fields.purchase_amount}` : 'N/A', icon: '💰' },
+                        { label: 'Last Purchase', value: customerData?.custom_fields?.last_purchase || 'N/A', icon: '📅' },
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-start gap-2 pb-2 border-b border-light-border dark:border-dark-border last:border-0">
+                          <span className="text-lg flex-shrink-0">{item.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
+                              {item.label}
+                            </div>
+                            <div className="text-sm text-light-text-primary dark:text-dark-text-primary break-words">
+                              {item.value}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => insertField(field.name, 'subject')}
-                      className="flex-1 px-2 py-1 text-xs bg-primary-teal/20 text-primary-teal dark:bg-primary-teal/30 rounded hover:bg-primary-teal/30 dark:hover:bg-primary-teal/40"
-                    >
-                      → Subject
-                    </button>
-                    <button
-                      onClick={() => insertField(field.name, 'body')}
-                      className="flex-1 px-2 py-1 text-xs bg-primary-mauve/20 text-primary-mauve dark:bg-primary-mauve/30 rounded hover:bg-primary-mauve/30 dark:hover:bg-primary-mauve/40"
-                    >
-                      → Body
-                    </button>
-                  </div>
+                </>
+              ) : (
+                /* Multiple Customers - Show count only */
+                <div className="bg-gradient-to-br from-primary-teal/10 to-primary-mauve/10 rounded-lg p-4 border border-primary-teal/20 dark:border-primary-teal/30">
+                  <h3 className="text-sm font-semibold text-light-text-primary dark:text-dark-text-primary mb-2 flex items-center gap-2">
+                    <span className="text-lg">👥</span>
+                    Multiple Recipients
+                  </h3>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                    Editing email template for <strong className="text-primary-teal">{customers.length} customers</strong>.
+                  </p>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    The email will be personalized with each customer's data when sent.
+                  </p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

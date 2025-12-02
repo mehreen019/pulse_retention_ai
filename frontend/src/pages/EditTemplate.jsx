@@ -11,7 +11,7 @@ const EditTemplate = () => {
   const location = useLocation()
   const navigate = useNavigate()
   
-  const { subject, htmlBody, segmentId, customerIds } = location.state || {}
+  const { subject, htmlBody, segmentId, customerIds, customers } = location.state || {}
 
   const handleSave = async (updatedTemplate) => {
     if (!customerIds || customerIds.length === 0) {
@@ -69,6 +69,7 @@ const EditTemplate = () => {
         <TemplateEditor
           initialSubject={subject}
           initialHtmlBody={htmlBody}
+          customers={customers}
           onSave={handleSave}
           onCancel={handleCancel}
         />

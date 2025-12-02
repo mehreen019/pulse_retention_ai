@@ -8,6 +8,7 @@ import Home from './pages/Home'
 import Landing from './pages/Landing'
 import EmailCampaign from './pages/EmailCampaign'
 import EditTemplate from './pages/EditTemplate'
+import EmailHistory from './pages/EmailHistory'
 import Analytics from './pages/Analytics'
 import ROIDashboard from './pages/ROIDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -46,6 +47,11 @@ function App() {
         <Route path="/edit-template" element={
           <ProtectedRoute>
             <EditTemplate />
+          </ProtectedRoute>
+        } />
+        <Route path="/email-history" element={
+          <ProtectedRoute>
+            <EmailHistory />
           </ProtectedRoute>
         } />
         <Route path="/analytics" element={

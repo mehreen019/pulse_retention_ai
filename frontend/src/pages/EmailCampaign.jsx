@@ -130,12 +130,16 @@ const EmailCampaign = () => {
   }
 
   const handleEditTemplate = () => {
+    // Get customer data for selected customers
+    const selectedCustomerData = customers.filter(c => selectedCustomers.includes(c.id))
+    
     navigate('/edit-template', {
       state: {
         subject: emailPreview?.subject,
         htmlBody: emailPreview?.html_body,
         segmentId: selectedSegment,
         customerIds: selectedCustomers,
+        customers: selectedCustomerData,
       }
     })
   }

@@ -12,6 +12,8 @@ from app.services.segmentation_service import SegmentationService
 from app.services.email_template_service import EmailTemplateService
 from app.services.email_sender import EmailSender
 from app.schemas.email import EmailGenerateResponse, EmailSendResponse
+from app.db.models.email_log import EmailLog
+from app.db.session import SessionLocal
 
 logger = logging.getLogger(__name__)
 
@@ -104,13 +106,16 @@ class EmailService:
         
         # Send personalized email to each customer
         for customer in customers:
+            personalized_subject = subject
+            personalized_html = html_body
+            personalized_text = text_body
+            
             try:
                 customer_data = customer.model_dump()
                 
                 # Personalize subject and body for this customer
                 personalized_subject = EmailTemplateService.apply_placeholders(subject, customer_data)
                 personalized_html = EmailTemplateService.apply_placeholders(html_body, customer_data)
-                personalized_text = None
                 if text_body:
                     personalized_text = EmailTemplateService.apply_placeholders(text_body, customer_data)
                 
@@ -130,19 +135,23 @@ class EmailService:
                     "timestamp": result.get("timestamp")
                 })
                 
-                # TODO: Log to database
-                # email_log = EmailLog(
-                #     customer_id=customer.id,
-                #     recipient_email=customer.email,
-                #     subject=personalized_subject,
-                #     html_body=personalized_html,
-                #     text_body=personalized_text,
-                #     segment_id=segment_id,
-                #     status="sent",
-                #     organization_id=organization_id
-                # )
-                # await db.add(email_log)
-                # await db.commit()
+                # Log to database
+                db = SessionLocal()
+                try:
+                    email_log = EmailLog(
+                        customer_id=customer.id,
+                        recipient_email=customer.email,
+                        subject=personalized_subject,
+                        html_body=personalized_html,
+                        text_body=personalized_text,
+                        segment_id=segment_id,
+                        status="sent",
+                        organization_id=organization_id
+                    )
+                    db.add(email_log)
+                    db.commit()
+                finally:
+                    db.close()
                 
             except Exception as e:
                 logger.error(f"Failed to send email to {customer.email}: {str(e)}")
@@ -154,19 +163,23 @@ class EmailService:
                     "error": str(e)
                 })
                 
-                # TODO: Log failure to database
-                # email_log = EmailLog(
-                #     customer_id=customer.id,
-                #     recipient_email=customer.email,
-                #     subject=personalized_subject,
-                #     html_body=personalized_html,
-                #     segment_id=segment_id,
-                #     status="failed",
-                #     error_message=str(e),
-                #     organization_id=organization_id
-                # )
-                # await db.add(email_log)
-                # await db.commit()
+                # Log failure to database
+                db = SessionLocal()
+                try:
+                    email_log = EmailLog(
+                        customer_id=customer.id,
+                        recipient_email=customer.email,
+                        subject=personalized_subject,
+                        html_body=personalized_html,
+                        segment_id=segment_id,
+                        status="failed",
+                        error_message=str(e),
+                        organization_id=organization_id
+                    )
+                    db.add(email_log)
+                    db.commit()
+                finally:
+                    db.close()
         
         return EmailSendResponse(
             success=sent_count > 0,

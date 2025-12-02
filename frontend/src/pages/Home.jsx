@@ -16,6 +16,7 @@ const Home = () => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'email', label: 'Email Campaign', icon: '📧' },
+    { id: 'history', label: 'Email History', icon: '📜' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
     { id: 'roi', label: 'ROI Dashboard', icon: '💰' }
   ]
@@ -23,6 +24,7 @@ const Home = () => {
   const handleMenuClick = (id) => {
     setActivePage(id)
     if (id === 'email') navigate('/email-campaign')
+    if (id === 'history') navigate('/email-history')
     if (id === 'analytics') navigate('/analytics')
     if (id === 'roi') navigate('/roi-dashboard')
   }
