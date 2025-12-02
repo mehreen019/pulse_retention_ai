@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -m app.helpers.normalize_telco_dataset:*)"
+      "Bash(python -m app.helpers.normalize_telco_dataset:*)",
+      "Bash(python -m app.helpers.normalize_ecomm_dataset:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []
