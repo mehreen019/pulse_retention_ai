@@ -3,6 +3,7 @@ import { churnAPI } from '../api/churn';
 import { useAuthStore } from '../stores/authStore';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import Layout from '../components/Layout';
 
 /**
  * ChurnPrediction Component
@@ -382,16 +383,17 @@ export default function ChurnPrediction() {
   // ============================================================================
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Churn Prediction v2
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Upload customer data, train models, and predict churn risk
-        </p>
-      </div>
+    <Layout activePage="churn">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Churn Prediction v2
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Upload customer data, train models, and predict churn risk
+          </p>
+        </div>
 
       {/* Error Display */}
       {error && (
@@ -928,6 +930,7 @@ export default function ChurnPrediction() {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </Layout>
   );
 }
