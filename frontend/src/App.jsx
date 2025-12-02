@@ -9,6 +9,7 @@ import Landing from './pages/Landing'
 import EmailCampaign from './pages/EmailCampaign'
 import EditTemplate from './pages/EditTemplate'
 import Analytics from './pages/Analytics'
+import ROIDashboard from './pages/ROIDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
 import ThemeToggle from './components/ThemeToggle'
 
@@ -50,6 +51,11 @@ function App() {
         <Route path="/analytics" element={
           <ProtectedRoute>
             <Analytics />
+          </ProtectedRoute>
+        } />
+        <Route path="/roi-dashboard" element={
+          <ProtectedRoute>
+            <ROIDashboard />
           </ProtectedRoute>
         } />
         <Route path="/" element={<Landing />} />

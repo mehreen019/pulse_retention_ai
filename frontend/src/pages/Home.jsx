@@ -86,17 +86,20 @@ const Home = () => {
                   </p>
                 </button>
 
-                <div className="p-6 bg-gray-50 border-2 border-gray-200 rounded-lg opacity-50 text-left">
+                <button
+                  onClick={() => navigate('/roi-dashboard')}
+                  className="p-6 bg-green-50 border-2 border-green-200 rounded-lg hover:bg-green-100 hover:border-green-300 transition-all text-left"
+                >
                   <div className="flex items-center mb-2">
-                    <svg className="w-6 h-6 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
-                    <h3 className="text-lg font-semibold text-gray-600">Customers</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">ROI Dashboard</h3>
                   </div>
-                  <p className="text-sm text-gray-500">
-                    Manage customer data and segments (Coming Soon)
+                  <p className="text-sm text-gray-600">
+                    Track business ROI and profit metrics
                   </p>
-                </div>
+                </button>
               </div>
             </div>
 
