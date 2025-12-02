@@ -5,6 +5,8 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Home from './pages/Home'
 import Landing from './pages/Landing'
+import EmailCampaign from './pages/EmailCampaign'
+import EditTemplate from './pages/EditTemplate'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -26,6 +28,16 @@ function App() {
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Home />
+        </ProtectedRoute>
+      } />
+      <Route path="/email-campaign" element={
+        <ProtectedRoute>
+          <EmailCampaign />
+        </ProtectedRoute>
+      } />
+      <Route path="/edit-template" element={
+        <ProtectedRoute>
+          <EditTemplate />
         </ProtectedRoute>
       } />
       <Route path="/" element={<Landing />} />

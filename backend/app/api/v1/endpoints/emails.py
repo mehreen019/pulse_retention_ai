@@ -1,0 +1,218 @@
+"""
+Email API Endpoints
+Handles HTTP requests for email campaign operations.
+"""
+from fastapi import APIRouter, HTTPException, Depends, status
+from typing import List
+
+from app.schemas.email import (
+    EmailGenerateRequest,
+    EmailGenerateResponse,
+    EmailSendRequest,
+    EmailSendResponse
+)
+from app.schemas.customer import CustomerResponse, SegmentResponse
+from app.services.email_service import EmailService
+from app.services.customer_service import CustomerService
+from app.services.segmentation_service import SegmentationService
+
+router = APIRouter()
+
+
+# TODO: Replace with actual auth dependency when ready
+async def get_current_org_id():
+    """Mock organization ID - replace with actual auth"""
+    return 1
+
+
+@router.get("/segments", response_model=List[SegmentResponse])
+async def get_segments(
+    org_id: int = Depends(get_current_org_id)
+):
+    """
+    Get all customer segments for the organization.
+    
+    Returns:
+        List of segments with customer counts
+    """
+    try:
+        segments = await SegmentationService.get_segments(org_id)
+        return segments
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch segments: {str(e)}"
+        )
+
+
+@router.get("/segments/{segment_id}/customers", response_model=List[CustomerResponse])
+async def get_segment_customers(
+    segment_id: str,
+    org_id: int = Depends(get_current_org_id)
+):
+    """
+    Get all customers in a specific segment.
+    
+    Args:
+        segment_id: Segment ID
+        
+    Returns:
+        List of customers in the segment
+    """
+    try:
+        customers = await CustomerService.get_customers_by_segment(segment_id, org_id)
+        return customers
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch customers: {str(e)}"
+        )
+
+
+@router.get("/customers", response_model=List[CustomerResponse])
+async def get_all_customers(
+    org_id: int = Depends(get_current_org_id)
+):
+    """
+    Get all customers for the organization.
+    
+    Returns:
+        List of all customers
+    """
+    try:
+        customers = await CustomerService.get_all_customers(org_id)
+        return customers
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch customers: {str(e)}"
+        )
+
+
+@router.post("/emails/generate", response_model=EmailGenerateResponse)
+async def generate_email(
+    request: EmailGenerateRequest,
+    org_id: int = Depends(get_current_org_id)
+):
+    """
+    Generate email template preview for customers or segment.
+    
+    Request body:
+        - customer_ids: List of customer IDs (optional)
+        - segment_id: Segment ID (optional)
+        - extra_params: Additional parameters (optional)
+        
+    Returns:
+        Email template with subject and body
+    """
+    try:
+        # Validate input
+        if not request.customer_ids and not request.segment_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either customer_ids or segment_id must be provided"
+            )
+        
+        # Generate email preview
+        email = await EmailService.generate_email_preview(
+            customer_ids=request.customer_ids,
+            segment_id=request.segment_id,
+            organization_id=org_id,
+            extra_params=request.extra_params
+        )
+        
+        return email
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate email: {str(e)}"
+        )
+
+
+@router.post("/emails/send", response_model=EmailSendResponse)
+async def send_emails(
+    request: EmailSendRequest,
+    org_id: int = Depends(get_current_org_id)
+):
+    """
+    Send personalized emails to customers.
+    
+    Request body:
+        - subject: Email subject (may contain {placeholders})
+        - html_body: HTML email body (may contain {placeholders})
+        - text_body: Plain text body (optional)
+        - customer_ids: List of customer IDs to send to
+        - segment_id: Segment ID (optional, for logging)
+        
+    Returns:
+        Send results with success/failure counts
+    """
+    try:
+        # Validate input
+        if not request.customer_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="customer_ids must be provided"
+            )
+        
+        # Send emails
+        result = await EmailService.send_emails(
+            subject=request.subject,
+            html_body=request.html_body,
+            text_body=request.text_body,
+            customer_ids=request.customer_ids,
+            segment_id=request.segment_id,
+            organization_id=org_id
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send emails: {str(e)}"
+        )
+
+
+@router.post("/emails/send-to-segment", response_model=EmailSendResponse)
+async def send_to_segment(
+    segment_id: str,
+    subject: str,
+    html_body: str,
+    text_body: str = None,
+    org_id: int = Depends(get_current_org_id)
+):
+    """
+    Send emails to all customers in a segment.
+    
+    Query parameters:
+        - segment_id: Segment ID
+        - subject: Email subject
+        - html_body: HTML email body
+        - text_body: Plain text body (optional)
+        
+    Returns:
+        Send results with success/failure counts
+    """
+    try:
+        result = await EmailService.send_to_segment(
+            subject=subject,
+            html_body=html_body,
+            text_body=text_body,
+            segment_id=segment_id,
+            organization_id=org_id
+        )
+        
+        return result
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to send emails: {str(e)}"
+        )
