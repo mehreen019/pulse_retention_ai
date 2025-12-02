@@ -348,7 +348,9 @@ def validate_standard_schema(df: pd.DataFrame, strict: bool = True) -> Tuple[boo
 
     # Validate data in required columns
     if 'customer_id' in df.columns:
-        null_count = df['customer_id'].isna().sum()
+        # Handle potential duplicate 'customer_id' columns by flattening to numpy
+        # so we always get a scalar count instead of a Series.
+        null_count = df['customer_id'].isna().to_numpy().sum()
         if null_count > 0:
             errors.append(f"Found {null_count} null values in customer_id column")
 
@@ -363,11 +365,14 @@ def validate_standard_schema(df: pd.DataFrame, strict: bool = True) -> Tuple[boo
             errors.append(f"Found {len(invalid_labels)} invalid churn_label values (must be 0 or 1)")
 
     if 'event_date' in df.columns:
-        # Try to parse dates
-        try:
-            pd.to_datetime(df['event_date'], format='%Y-%m-%d', errors='raise')
-        except:
-            errors.append(f"event_date column contains invalid dates (must be YYYY-MM-DD format)")
+        # Try to parse dates (accept any parseable date, then we normalize later)
+        parsed = pd.to_datetime(df['event_date'], errors='coerce')
+        invalid_count = parsed.isna().sum()
+        if invalid_count > 0:
+            errors.append(
+                f"event_date column contains {invalid_count} invalid dates "
+                f"(must be parseable to a date that we can convert to YYYY-MM-DD)"
+            )
 
     is_valid = len(errors) == 0
 
@@ -390,7 +395,23 @@ def standardize_and_clean(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.copy()
 
-    # Select only standard schema columns
+    # Ensure all standard columns exist; if missing, create with safe defaults
+    for col, col_type in STANDARD_SCHEMA.items():
+        if col not in df.columns:
+            if col == 'customer_id':
+                df[col] = ''
+            elif col == 'event_date':
+                df[col] = ''
+            elif col == 'amount':
+                df[col] = 0.0
+            elif col == 'event_type':
+                df[col] = 'unknown'
+            elif col == 'churn_label':
+                df[col] = 0
+            else:
+                df[col] = None
+
+    # Select only standard schema columns (now guaranteed to exist)
     df = df[list(STANDARD_SCHEMA.keys())]
 
     # Remove rows with null customer_id
@@ -398,7 +419,16 @@ def standardize_and_clean(df: pd.DataFrame) -> pd.DataFrame:
 
     # Ensure proper types
     df['customer_id'] = df['customer_id'].astype(str)
-    df['event_date'] = df['event_date'].astype(str)
+
+    # Normalize event_date:
+    # - parse anything pandas understands
+    # - drop rows where event_date cannot be parsed
+    # - format as YYYY-MM-DD
+    parsed_dates = pd.to_datetime(df['event_date'], errors='coerce')
+    df = df[parsed_dates.notna()].copy()
+    df['event_date'] = parsed_dates[parsed_dates.notna()].dt.strftime('%Y-%m-%d')
+
+    # Amount: numeric, non-negative
     df['amount'] = pd.to_numeric(df['amount'], errors='coerce').fillna(0.0).clip(lower=0)
     df['event_type'] = df['event_type'].astype(str)
     df['churn_label'] = pd.to_numeric(df['churn_label'], errors='coerce').fillna(0).astype(int).clip(0, 1)

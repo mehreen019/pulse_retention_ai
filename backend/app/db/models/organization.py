@@ -19,7 +19,7 @@ class Organization(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     name = Column(String, nullable=False)
-    churn_threshold_days = Column(Integer, default=30, nullable=False)
+    churn_threshold_days = Column(Integer, default=60, nullable=False)
     org_type = Column(
         SQLAEnum(
             OrgType,

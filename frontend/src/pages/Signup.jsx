@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import Input from '../components/Input'
+import Select from '../components/Select'
 import Button from '../components/Button'
 import Loading from '../components/Loading'
 
@@ -14,6 +15,8 @@ const Signup = () => {
     email: '',
     password: '',
     confirmPassword: '',
+    org_name: '',
+    org_type: '',
   })
 
   const [formErrors, setFormErrors] = useState({})
@@ -54,6 +57,12 @@ const Signup = () => {
     }
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match'
+    }
+    if (!formData.org_name.trim()) {
+      errors.org_name = 'Organization name is required'
+    }
+    if (!formData.org_type) {
+      errors.org_type = 'Organization type is required'
     }
     return errors
   }
@@ -137,6 +146,30 @@ const Signup = () => {
               error={formErrors.confirmPassword}
               placeholder="Confirm your password"
               required
+            />
+            <Input
+              label="Organization Name"
+              type="text"
+              name="org_name"
+              value={formData.org_name}
+              onChange={handleChange}
+              error={formErrors.org_name}
+              placeholder="Enter your organization name"
+              required
+            />
+            <Select
+              label="Organization Type"
+              name="org_type"
+              value={formData.org_type}
+              onChange={handleChange}
+              error={formErrors.org_type}
+              placeholder="Select organization type"
+              required
+              options={[
+                { value: 'banking', label: 'Banking' },
+                { value: 'telecom', label: 'Telecom' },
+                { value: 'ecommerce', label: 'E-commerce' },
+              ]}
             />
           </div>
 
