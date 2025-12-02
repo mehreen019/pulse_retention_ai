@@ -155,5 +155,22 @@ export const churnAPI = {
       }
     )
     return response.data
+  },
+
+  /**
+   * Get all customers from prediction batches with optional risk segment filter
+   * @param {string} orgId - Organization UUID
+   * @param {string} riskSegment - Optional risk segment filter (Low, Medium, High, Critical)
+   * @param {number} limit - Number of customers to return
+   * @param {number} offset - Pagination offset
+   * @returns {Promise} List of customers with prediction data
+   */
+  getPredictionCustomers: async (orgId, riskSegment = null, limit = 100, offset = 0) => {
+    const params = new URLSearchParams({ limit: limit.toString(), offset: offset.toString() })
+    if (riskSegment) params.append('risk_segment', riskSegment)
+    const response = await client.get(
+      `/churn/v2/organizations/${orgId}/prediction-customers?${params.toString()}`
+    )
+    return response.data
   }
 }
