@@ -356,10 +356,6 @@ const ROIDashboard = () => {
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">৳{metrics.avgCustomerLTV?.toLocaleString()}</td>
                   </tr>
                   <tr className="border-b dark:border-gray-700">
-                    <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">Cost per Acquisition</td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300">৳{metrics.costPerAcquisition?.toLocaleString()}</td>
-                  </tr>
-                  <tr className="border-b dark:border-gray-700">
                     <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">Cost per Retention</td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300">৳{metrics.costPerRetention?.toLocaleString()}</td>
                   </tr>
