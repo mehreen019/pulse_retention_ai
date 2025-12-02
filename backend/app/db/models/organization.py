@@ -20,7 +20,15 @@ class Organization(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     name = Column(String, nullable=False)
     churn_threshold_days = Column(Integer, default=30, nullable=False)
-    org_type = Column(SQLAEnum(OrgType, name='org_type_enum'), nullable=False, server_default='telecom')
+    org_type = Column(
+        SQLAEnum(
+            OrgType,
+            name='org_type_enum',
+            values_callable=lambda enum_cls: [member.value for member in enum_cls]
+        ),
+        nullable=False,
+        server_default='telecom'
+    )
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relationships

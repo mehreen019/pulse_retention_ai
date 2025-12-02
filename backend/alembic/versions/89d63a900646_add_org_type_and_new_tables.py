@@ -59,7 +59,7 @@ def upgrade() -> None:
         sa.Column('rfm_category', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('churn_risk_level', sa.String(), nullable=False),  # 'Low', 'Medium', 'High', 'Critical'
         sa.Column('assigned_at', sa.DateTime(), nullable=False),
-        sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('extra_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.ForeignKeyConstraint(['customer_id'], ['customers.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
@@ -83,7 +83,7 @@ def upgrade() -> None:
         sa.Column('risk_signals', postgresql.JSONB(astext_type=sa.Text()), nullable=True),  # Array of risk signals
         sa.Column('recommendations', postgresql.JSONB(astext_type=sa.Text()), nullable=True),  # Array of recommendations
         sa.Column('analyzed_at', sa.DateTime(), nullable=False),
-        sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('extra_data', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.ForeignKeyConstraint(['customer_id'], ['customers.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')

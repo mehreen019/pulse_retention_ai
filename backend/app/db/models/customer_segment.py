@@ -25,7 +25,7 @@ class CustomerSegment(Base):
 
     # Metadata
     assigned_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    metadata = Column(JSONB, nullable=True)  # Additional segment-specific data
+    extra_data = Column(JSONB, nullable=True)  # Additional segment-specific data
 
     # Relationships
     customer = relationship("Customer", backref="customer_segment")

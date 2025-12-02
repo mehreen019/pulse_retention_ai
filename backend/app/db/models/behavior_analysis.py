@@ -26,7 +26,14 @@ class BehaviorAnalysis(Base):
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Organization type for context
-    org_type = Column(SQLAEnum(OrgType, name='org_type_enum'), nullable=False)
+    org_type = Column(
+        SQLAEnum(
+            OrgType,
+            name='org_type_enum',
+            values_callable=lambda enum_cls: [member.value for member in enum_cls]
+        ),
+        nullable=False
+    )
 
     # Behavior metrics
     behavior_score = Column(Numeric(5, 2), nullable=False)  # 0.00 to 100.00 - composite behavior health score
@@ -40,7 +47,7 @@ class BehaviorAnalysis(Base):
 
     # Metadata
     analyzed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    metadata = Column(JSONB, nullable=True)  # Industry-specific metrics
+    extra_data = Column(JSONB, nullable=True)  # Industry-specific metrics
 
     # Relationships
     customer = relationship("Customer", backref="behavior_analysis")

@@ -26,10 +26,10 @@ def create_behavior_timeline(transactions: List[Transaction]) -> pd.DataFrame:
         transactions: List of Transaction objects
 
     Returns:
-        DataFrame with event_date, event_type, amount, metadata
+        DataFrame with event_date, event_type, amount, extra_data
     """
     if not transactions:
-        return pd.DataFrame(columns=['event_date', 'event_type', 'amount', 'metadata'])
+        return pd.DataFrame(columns=['event_date', 'event_type', 'amount', 'extra_data'])
 
     data = []
     for txn in transactions:
@@ -37,7 +37,7 @@ def create_behavior_timeline(transactions: List[Transaction]) -> pd.DataFrame:
             'event_date': txn.event_date,
             'event_type': txn.event_type or 'transaction',
             'amount': float(txn.amount) if txn.amount else 0.0,
-            'metadata': txn.metadata or {}
+            'extra_data': txn.extra_data or {}
         })
 
     df = pd.DataFrame(data)
@@ -117,7 +117,7 @@ def analyze_customer(
             'engagement_trend': 'unknown',
             'risk_signals': ['no_transaction_history'],
             'recommendations': ['Investigate customer onboarding status'],
-            'metadata': {}
+            'extra_data': {}
         }
 
     # Create behavior timeline
@@ -149,7 +149,7 @@ def analyze_customer(
         'engagement_trend': metrics['engagement_trend'],
         'risk_signals': metrics['risk_signals'],
         'recommendations': recommendations,
-        'metadata': metrics.get('industry_metrics', {})
+        'extra_data': metrics.get('industry_metrics', {})
     }
 
 
@@ -206,7 +206,7 @@ def batch_analyze_behaviors(
                     existing_analysis.risk_signals = analysis_data['risk_signals']
                     existing_analysis.recommendations = analysis_data['recommendations']
                     existing_analysis.analyzed_at = datetime.utcnow()
-                    existing_analysis.metadata = analysis_data['metadata']
+                    existing_analysis.extra_data = analysis_data['extra_data']
                 else:
                     # Create new
                     new_analysis = BehaviorAnalysis(
@@ -219,7 +219,7 @@ def batch_analyze_behaviors(
                         engagement_trend=analysis_data['engagement_trend'],
                         risk_signals=analysis_data['risk_signals'],
                         recommendations=analysis_data['recommendations'],
-                        metadata=analysis_data['metadata']
+                        extra_data=analysis_data['extra_data']
                     )
                     db.add(new_analysis)
 

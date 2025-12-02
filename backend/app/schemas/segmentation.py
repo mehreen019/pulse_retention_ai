@@ -16,7 +16,7 @@ class SegmentResponse(BaseModel):
     rfm_category: Dict[str, str]
     churn_risk_level: str
     assigned_at: Optional[datetime] = None
-    metadata: Optional[Dict[str, Any]] = None
+    extra_data: Optional[Dict[str, Any]] = None
 
 
 class SegmentUploadRequest(BaseModel):
@@ -36,7 +36,7 @@ class BatchSegmentResponse(BaseModel):
 class SegmentDistributionResponse(BaseModel):
     """Response schema for segment distribution across organization."""
     total_customers: int
-    segments: Dict[str, Dict[str, Any]]  # {segment_name: {count, percentage, metadata}}
+    segments: Dict[str, Dict[str, Any]]  # {segment_name: {count, percentage, extra_data}}
 
 
 class SegmentDefinitionsResponse(BaseModel):

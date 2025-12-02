@@ -10,3 +10,6 @@ from app.db.models.churn_prediction import ChurnPrediction  # noqa
 from app.db.models.model_metadata import ModelMetadata  # noqa
 from app.db.models.data_processing_status import DataProcessingStatus  # noqa
 from app.db.models.dataset import Dataset  # noqa - NEW for Churn V2
+from app.db.models.prediction_batch import PredictionBatch  # noqa - NEW for Churn V2
+from app.db.models.customer_segment import CustomerSegment  # noqa - NEW for Segmentation
+from app.db.models.behavior_analysis import BehaviorAnalysis  # noqa - NEW for Behavior Analysis

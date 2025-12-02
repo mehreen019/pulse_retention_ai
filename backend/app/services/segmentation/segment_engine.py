@@ -2,8 +2,10 @@
 Customer Segmentation Engine
 Core logic for assigning customers to segments based on RFM and churn predictions
 """
+from sqlalchemy import and_
 import pandas as pd
 import uuid
+import io
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -13,6 +15,9 @@ from app.db.models.customer import Customer
 from app.db.models.customer_feature import CustomerFeature
 from app.db.models.customer_segment import CustomerSegment
 from app.db.models.churn_prediction import ChurnPrediction
+from app.db.models.prediction_batch import CustomerPrediction
+from app.db.models.dataset import Dataset
+from app.services.storage import download_from_supabase
 from .rules import assign_segment, get_segment_metadata
 from .utils import (
     categorize_rfm_score,
@@ -94,7 +99,7 @@ def segment_customer(
         'rfm_category': rfm_category,
         'churn_risk_level': churn_risk,
         'churn_probability': churn_probability,
-        'metadata': metadata
+        'extra_data': metadata
     }
 
 
@@ -157,7 +162,7 @@ def batch_segment_customers(
                     existing_segment.rfm_category = segment_data['rfm_category']
                     existing_segment.churn_risk_level = segment_data['churn_risk_level']
                     existing_segment.assigned_at = datetime.utcnow()
-                    existing_segment.metadata = segment_data['metadata']
+                    existing_segment.extra_data = segment_data['extra_data']
                 else:
                     # Create new
                     new_segment = CustomerSegment(
@@ -167,7 +172,7 @@ def batch_segment_customers(
                         segment_score=segment_data['segment_score'],
                         rfm_category=segment_data['rfm_category'],
                         churn_risk_level=segment_data['churn_risk_level'],
-                        metadata=segment_data['metadata']
+                        extra_data=segment_data['extra_data']
                     )
                     db.add(new_segment)
 
@@ -197,6 +202,221 @@ def batch_segment_customers(
     except Exception as e:
         db.rollback()
         raise Exception(f"Error in batch segmentation: {str(e)}")
+
+
+def batch_segment_customers_optimized(
+    organization_id: UUID,
+    churn_predictions_csv: str,
+    db: Session
+) -> Dict[str, Any]:
+    """
+    Optimized batch segmentation with minimal database queries.
+    
+    Args:
+        organization_id: Organization UUID
+        churn_predictions_csv: Path to CSV file with customer_id and churn_score
+        db: Database session
+    
+    Returns:
+        Status dictionary with counts and errors
+    """
+    try:
+        # Load churn predictions CSV
+        df = pd.read_csv(churn_predictions_csv)
+        
+        if 'customer_id' not in df.columns or 'churn_score' not in df.columns:
+            raise ValueError("CSV must have 'customer_id' and 'churn_score' columns")
+        
+        total_customers = len(df)
+        print(f"Processing {total_customers} customers for segmentation...")
+        
+        # Create lookup dictionary for churn scores
+        churn_lookup = dict(zip(df['customer_id'], df['churn_score']))
+        external_ids = df['customer_id'].tolist()
+        
+        # BATCH QUERY 1: Get all customers with features in ONE query
+        customers_with_features = db.query(
+            Customer,
+            CustomerFeature
+        ).join(
+            CustomerFeature,
+            Customer.id == CustomerFeature.customer_id
+        ).filter(
+            and_(
+                Customer.external_customer_id.in_(external_ids),
+                Customer.organization_id == organization_id
+            )
+        ).all()
+        
+        print(f"Found {len(customers_with_features)} customers with features")
+        
+        # Create lookup dictionaries
+        customer_lookup = {}
+        feature_lookup = {}
+        for customer, feature in customers_with_features:
+            customer_lookup[customer.external_customer_id] = customer
+            feature_lookup[customer.id] = feature
+        
+        # BATCH QUERY 2: Get all existing segments in ONE query
+        customer_ids = [c.id for c in customer_lookup.values()]
+        existing_segments = db.query(CustomerSegment).filter(
+            CustomerSegment.customer_id.in_(customer_ids)
+        ).all()
+        
+        existing_segments_lookup = {seg.customer_id: seg for seg in existing_segments}
+        
+        # Process all customers in memory
+        segmented = 0
+        errors = []
+        segments_to_add = []
+        segments_to_update = []
+        
+        for external_id, churn_score in churn_lookup.items():
+            try:
+                # Validate churn score
+                churn_probability = float(churn_score)
+                if not 0.0 <= churn_probability <= 1.0:
+                    errors.append(f"Invalid churn score {churn_score} for customer {external_id}")
+                    continue
+                
+                # Check if customer exists
+                if external_id not in customer_lookup:
+                    errors.append(f"Customer {external_id} not found in organization")
+                    continue
+                
+                customer = customer_lookup[external_id]
+                feature = feature_lookup.get(customer.id)
+                
+                if not feature:
+                    errors.append(f"No features found for customer {external_id}")
+                    continue
+                
+                # Perform segmentation (all in-memory calculations)
+                segment_data = segment_customer_inmemory(
+                    customer_id=customer.id,
+                    feature=feature,
+                    churn_probability=churn_probability,
+                    organization_id=organization_id
+                )
+                
+                # Check if segment exists
+                existing_segment = existing_segments_lookup.get(customer.id)
+                
+                if existing_segment:
+                    # Update existing
+                    existing_segment.segment = segment_data['segment']
+                    existing_segment.segment_score = segment_data['segment_score']
+                    existing_segment.rfm_category = segment_data['rfm_category']
+                    existing_segment.churn_risk_level = segment_data['churn_risk_level']
+                    existing_segment.assigned_at = datetime.utcnow()
+                    existing_segment.extra_data = segment_data['extra_data']
+                    segments_to_update.append(existing_segment)
+                else:
+                    # Create new
+                    new_segment = CustomerSegment(
+                        customer_id=customer.id,
+                        organization_id=organization_id,
+                        segment=segment_data['segment'],
+                        segment_score=segment_data['segment_score'],
+                        rfm_category=segment_data['rfm_category'],
+                        churn_risk_level=segment_data['churn_risk_level'],
+                        extra_data=segment_data['extra_data']
+                    )
+                    segments_to_add.append(new_segment)
+                
+                segmented += 1
+                
+                # Progress indicator
+                if segmented % 1000 == 0:
+                    print(f"  Processed {segmented}/{total_customers} customers...")
+                
+            except Exception as e:
+                errors.append(f"Error segmenting customer {external_id}: {str(e)}")
+                continue
+        
+        # BATCH INSERT/UPDATE: Add all new segments at once
+        if segments_to_add:
+            db.bulk_save_objects(segments_to_add)
+            print(f"  Adding {len(segments_to_add)} new segments...")
+        
+        # Commit all changes in ONE transaction
+        db.commit()
+        print(f"Completed: {segmented}/{total_customers} customers segmented")
+        
+        return {
+            'success': True,
+            'total_customers': total_customers,
+            'segmented': segmented,
+            'new_segments': len(segments_to_add),
+            'updated_segments': len(segments_to_update),
+            'errors': errors
+        }
+    
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error in batch segmentation: {str(e)}")
+
+
+def segment_customer_inmemory(
+    customer_id: UUID,
+    feature: CustomerFeature,
+    churn_probability: float,
+    organization_id: UUID
+) -> Dict[str, Any]:
+    """
+    Segment customer using pre-loaded feature data (no DB queries).
+    
+    Args:
+        customer_id: Customer UUID
+        feature: CustomerFeature object (already loaded)
+        churn_probability: Churn probability (0.0 to 1.0)
+        organization_id: Organization UUID
+    
+    Returns:
+        Dictionary with segment, score, rfm_category, risk_level
+    """
+    # Categorize RFM scores
+    R = categorize_rfm_score(float(feature.recency_score or 0))
+    F = categorize_rfm_score(float(feature.frequency_score or 0))
+    M = categorize_rfm_score(float(feature.monetary_score or 0))
+    E = categorize_rfm_score(float(feature.engagement_score or 0))
+    
+    # Categorize churn risk
+    churn_risk = categorize_churn_probability(churn_probability)
+    
+    # Assign segment
+    segment = assign_segment(R, F, M, E, churn_risk)
+    
+    # Calculate composite score
+    segment_score = calculate_segment_score(
+        float(feature.recency_score or 0),
+        float(feature.frequency_score or 0),
+        float(feature.monetary_score or 0),
+        float(feature.engagement_score or 0),
+        churn_probability
+    )
+    
+    # Get RFM category dict
+    rfm_category = get_rfm_category_dict(
+        float(feature.recency_score or 0),
+        float(feature.frequency_score or 0),
+        float(feature.monetary_score or 0),
+        float(feature.engagement_score or 0)
+    )
+    
+    # Get segment metadata
+    metadata = get_segment_metadata(segment)
+    
+    return {
+        'customer_id': str(customer_id),
+        'organization_id': str(organization_id),
+        'segment': segment,
+        'segment_score': segment_score,
+        'rfm_category': rfm_category,
+        'churn_risk_level': churn_risk,
+        'churn_probability': churn_probability,
+        'extra_data': metadata
+    }
 
 
 def get_segment_distribution(organization_id: UUID, db: Session) -> Dict[str, Any]:
@@ -235,7 +455,7 @@ def get_segment_distribution(organization_id: UUID, db: Session) -> Dict[str, An
         segment_distribution[segment_name] = {
             'count': count,
             'percentage': round((count / total) * 100, 2),
-            'metadata': get_segment_metadata(segment_name)
+            'extra_data': get_segment_metadata(segment_name)
         }
 
     return {
@@ -270,5 +490,250 @@ def get_customer_segment(customer_id: UUID, db: Session) -> Optional[Dict[str, A
         'rfm_category': segment.rfm_category,
         'churn_risk_level': segment.churn_risk_level,
         'assigned_at': segment.assigned_at.isoformat() if segment.assigned_at else None,
-        'metadata': segment.metadata
+        'extra_data': segment.extra_data
     }
+
+
+def batch_segment_customers_from_db(
+    organization_id: UUID,
+    batch_id: Optional[UUID],
+    db: Session
+) -> Dict[str, Any]:
+    """
+    Batch segment customers using predictions from CustomerPrediction table and RFM features from Dataset CSV.
+
+    New approach:
+    1. Get predictions from CustomerPrediction table (external_customer_id, churn_probability)
+    2. Download RFM features CSV from Dataset table (dataset_type='features')
+    3. Get minimal Customer UUID mapping (external_customer_id -> customer_id)
+    4. Segment using RFM from CSV + churn probability
+
+    Args:
+        organization_id: Organization UUID
+        batch_id: Optional batch ID to segment specific batch, or None for all predictions
+        db: Database session
+
+    Returns:
+        Status dictionary with counts and errors
+    """
+    try:
+        # STEP 1: Get predictions from CustomerPrediction table
+        query = db.query(CustomerPrediction).filter(
+            CustomerPrediction.organization_id == organization_id
+        )
+
+        if batch_id:
+            query = query.filter(CustomerPrediction.batch_id == batch_id)
+
+        customer_predictions = query.all()
+
+        if not customer_predictions:
+            return {
+                'success': False,
+                'total_customers': 0,
+                'segmented': 0,
+                'errors': ['No predictions found for this organization']
+            }
+
+        total_customers = len(customer_predictions)
+        print(f"Processing {total_customers} customers for segmentation from database...")
+
+        # Create lookup dictionary for churn scores
+        churn_lookup = {
+            pred.external_customer_id: float(pred.churn_probability)
+            for pred in customer_predictions
+        }
+        external_ids = list(churn_lookup.keys())
+
+        # STEP 2: Get RFM features dataset (latest features CSV for this org)
+        features_dataset = db.query(Dataset).filter(
+            Dataset.organization_id == organization_id,
+            Dataset.dataset_type == 'features',
+            Dataset.status == 'ready'
+        ).order_by(Dataset.uploaded_at.desc()).first()
+
+        if not features_dataset:
+            return {
+                'success': False,
+                'total_customers': total_customers,
+                'segmented': 0,
+                'errors': ['No RFM features dataset found for this organization. Please process features first.']
+            }
+
+        print(f"Downloading RFM features from: {features_dataset.file_url}")
+
+        # Download and parse RFM CSV from Supabase
+        try:
+            rfm_csv_bytes = download_from_supabase(
+                features_dataset.bucket_name,
+                features_dataset.file_path
+            )
+            rfm_df = pd.read_csv(io.BytesIO(rfm_csv_bytes))
+            print(f"Loaded {len(rfm_df)} RFM records from CSV")
+        except Exception as e:
+            return {
+                'success': False,
+                'total_customers': total_customers,
+                'segmented': 0,
+                'errors': [f'Error downloading RFM features CSV: {str(e)}']
+            }
+
+        # Validate RFM CSV columns
+        required_rfm_cols = ['customer_id', 'recency_score', 'frequency_score', 'monetary_score', 'engagement_score']
+        missing_cols = [col for col in required_rfm_cols if col not in rfm_df.columns]
+        if missing_cols:
+            return {
+                'success': False,
+                'total_customers': total_customers,
+                'segmented': 0,
+                'errors': [f'RFM CSV missing required columns: {missing_cols}']
+            }
+
+        # Create RFM lookup dictionary by customer_id
+        rfm_lookup = {}
+        for _, row in rfm_df.iterrows():
+            rfm_lookup[str(row['customer_id'])] = {
+                'recency_score': float(row['recency_score']),
+                'frequency_score': float(row['frequency_score']),
+                'monetary_score': float(row['monetary_score']),
+                'engagement_score': float(row['engagement_score'])
+            }
+
+        print(f"RFM lookup created for {len(rfm_lookup)} customers")
+
+        # STEP 3: Get minimal Customer UUID mapping (external_customer_id -> customer_id)
+        customers = db.query(Customer).filter(
+            Customer.external_customer_id.in_(external_ids),
+            Customer.organization_id == organization_id
+        ).all()
+
+        customer_uuid_map = {
+            c.external_customer_id: c.id
+            for c in customers
+        }
+
+        print(f"Found {len(customer_uuid_map)} customers in database")
+
+        # STEP 4: Get existing segments
+        customer_uuids = list(customer_uuid_map.values())
+        existing_segments = db.query(CustomerSegment).filter(
+            CustomerSegment.customer_id.in_(customer_uuids)
+        ).all()
+
+        existing_segments_lookup = {seg.customer_id: seg for seg in existing_segments}
+
+        # STEP 5: Process all customers and create segments
+        segmented = 0
+        errors = []
+        segments_to_add = []
+        segments_to_update = []
+
+        for external_id, churn_probability in churn_lookup.items():
+            try:
+                # Validate churn score
+                if not 0.0 <= churn_probability <= 1.0:
+                    errors.append(f"Invalid churn score {churn_probability} for customer {external_id}")
+                    continue
+
+                # Check if customer exists in database
+                if external_id not in customer_uuid_map:
+                    errors.append(f"Customer {external_id} not found in Customer table")
+                    continue
+
+                customer_uuid = customer_uuid_map[external_id]
+
+                # Check if RFM features exist for this customer
+                if external_id not in rfm_lookup:
+                    errors.append(f"No RFM features found for customer {external_id} in features CSV")
+                    continue
+
+                rfm_features = rfm_lookup[external_id]
+
+                # Categorize RFM scores
+                R = categorize_rfm_score(rfm_features['recency_score'])
+                F = categorize_rfm_score(rfm_features['frequency_score'])
+                M = categorize_rfm_score(rfm_features['monetary_score'])
+                E = categorize_rfm_score(rfm_features['engagement_score'])
+
+                # Categorize churn risk
+                churn_risk = categorize_churn_probability(churn_probability)
+
+                # Assign segment
+                segment = assign_segment(R, F, M, E, churn_risk)
+
+                # Calculate composite score
+                segment_score = calculate_segment_score(
+                    rfm_features['recency_score'],
+                    rfm_features['frequency_score'],
+                    rfm_features['monetary_score'],
+                    rfm_features['engagement_score'],
+                    churn_probability
+                )
+
+                # Get RFM category dict
+                rfm_category = get_rfm_category_dict(
+                    rfm_features['recency_score'],
+                    rfm_features['frequency_score'],
+                    rfm_features['monetary_score'],
+                    rfm_features['engagement_score']
+                )
+
+                # Get segment metadata
+                metadata = get_segment_metadata(segment)
+
+                # Check if segment exists
+                existing_segment = existing_segments_lookup.get(customer_uuid)
+
+                if existing_segment:
+                    # Update existing
+                    existing_segment.segment = segment
+                    existing_segment.segment_score = segment_score
+                    existing_segment.rfm_category = rfm_category
+                    existing_segment.churn_risk_level = churn_risk
+                    existing_segment.assigned_at = datetime.utcnow()
+                    existing_segment.extra_data = metadata
+                    segments_to_update.append(existing_segment)
+                else:
+                    # Create new
+                    new_segment = CustomerSegment(
+                        customer_id=customer_uuid,
+                        organization_id=organization_id,
+                        segment=segment,
+                        segment_score=segment_score,
+                        rfm_category=rfm_category,
+                        churn_risk_level=churn_risk,
+                        extra_data=metadata
+                    )
+                    segments_to_add.append(new_segment)
+
+                segmented += 1
+
+                # Progress indicator
+                if segmented % 1000 == 0:
+                    print(f"  Processed {segmented}/{total_customers} customers...")
+
+            except Exception as e:
+                errors.append(f"Error segmenting customer {external_id}: {str(e)}")
+                continue
+
+        # STEP 6: Batch insert/update segments
+        if segments_to_add:
+            db.bulk_save_objects(segments_to_add)
+            print(f"  Adding {len(segments_to_add)} new segments...")
+
+        # Commit all changes in ONE transaction
+        db.commit()
+        print(f"Completed: {segmented}/{total_customers} customers segmented")
+
+        return {
+            'success': True,
+            'total_customers': total_customers,
+            'segmented': segmented,
+            'new_segments': len(segments_to_add),
+            'updated_segments': len(segments_to_update),
+            'errors': errors if errors else None
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error in batch segmentation from database: {str(e)}")
