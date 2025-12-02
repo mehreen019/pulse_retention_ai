@@ -12,6 +12,7 @@ import EmailHistory from './pages/EmailHistory'
 import Analytics from './pages/Analytics'
 import ROIDashboard from './pages/ROIDashboard'
 import ChurnPrediction from './pages/ChurnPrediction'
+import Predictions from './pages/Predictions'
 import ProtectedRoute from './components/ProtectedRoute'
 import ThemeToggle from './components/ThemeToggle'
 
@@ -68,6 +69,11 @@ function App() {
         <Route path="/churn-prediction" element={
           <ProtectedRoute>
             <ChurnPrediction />
+          </ProtectedRoute>
+        } />
+        <Route path="/predictions" element={
+          <ProtectedRoute>
+            <Predictions />
           </ProtectedRoute>
         } />
         <Route path="/" element={<Landing />} />

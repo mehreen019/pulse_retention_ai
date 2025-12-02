@@ -13,6 +13,7 @@ const Layout = ({ children, activePage }) => {
     const path = location.pathname
     if (path === '/dashboard' || path === '/') return 'dashboard'
     if (path === '/churn-prediction') return 'churn'
+    if (path === '/predictions') return 'predictions'
     if (path === '/email-campaign') return 'email'
     if (path === '/email-history') return 'history'
     if (path === '/analytics') return 'analytics'
@@ -28,6 +29,7 @@ const Layout = ({ children, activePage }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/dashboard' },
     { id: 'churn', label: 'Churn Prediction', icon: '🎯', path: '/churn-prediction' },
+    { id: 'predictions', label: 'Predictions', icon: '📋', path: '/predictions' },
     { id: 'email', label: 'Email Campaign', icon: '📧', path: '/email-campaign' },
     { id: 'history', label: 'Email History', icon: '📜', path: '/email-history' },
     { id: 'analytics', label: 'Analytics', icon: '📈', path: '/analytics' },
