@@ -1,35 +1,72 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/authStore'
+import { useThemeStore } from './stores/themeStore'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Home from './pages/Home'
 import Landing from './pages/Landing'
+import EmailCampaign from './pages/EmailCampaign'
+import EditTemplate from './pages/EditTemplate'
+import EmailHistory from './pages/EmailHistory'
+import Analytics from './pages/Analytics'
+import ROIDashboard from './pages/ROIDashboard'
 import ProtectedRoute from './components/ProtectedRoute'
+import ThemeToggle from './components/ThemeToggle'
 
 function App() {
   const { isAuthenticated, initializeAuth } = useAuthStore()
+  const { initializeTheme } = useThemeStore()
 
-  // Initialize auth on app load
+  // Initialize auth and theme on app load
   useEffect(() => {
     initializeAuth()
-  }, [initializeAuth])
+    initializeTheme()
+  }, [initializeAuth, initializeTheme])
 
   return (
-    <Routes>
-      <Route path="/login" element={
-        isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
-      } />
-      <Route path="/signup" element={
-        isAuthenticated ? <Navigate to="/dashboard" replace /> : <Signup />
-      } />
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Home />
-        </ProtectedRoute>
-      } />
-      <Route path="/" element={<Landing />} />
-    </Routes>
+    <>
+      <ThemeToggle />
+      <Routes>
+        <Route path="/login" element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+        } />
+        <Route path="/signup" element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <Signup />
+        } />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        } />
+        <Route path="/email-campaign" element={
+          <ProtectedRoute>
+            <EmailCampaign />
+          </ProtectedRoute>
+        } />
+        <Route path="/edit-template" element={
+          <ProtectedRoute>
+            <EditTemplate />
+          </ProtectedRoute>
+        } />
+        <Route path="/email-history" element={
+          <ProtectedRoute>
+            <EmailHistory />
+          </ProtectedRoute>
+        } />
+        <Route path="/analytics" element={
+          <ProtectedRoute>
+            <Analytics />
+          </ProtectedRoute>
+        } />
+        <Route path="/roi-dashboard" element={
+          <ProtectedRoute>
+            <ROIDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/" element={<Landing />} />
+      </Routes>
+    </>
   )
 }
 
