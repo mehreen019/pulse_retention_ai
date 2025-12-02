@@ -1,15 +1,22 @@
-from sqlalchemy import Column, Integer, String, Float, JSON
+from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+import uuid
+from datetime import datetime
 from app.db.base_class import Base
 
 
 class Customer(Base):
     __tablename__ = "customers"
     
-    id = Column(String, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    phone = Column(String, nullable=True)
-    segment_id = Column(String, nullable=True)
-    churn_score = Column(Float, nullable=True, default=0.0)
-    custom_fields = Column(JSON, nullable=True, default={})
-    organization_id = Column(Integer, nullable=False, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True)
+    external_customer_id = Column(String, nullable=False)  # Organization's customer ID
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    organization = relationship("Organization", back_populates="customers")
+    transactions = relationship("Transaction", back_populates="customer", cascade="all, delete-orphan")
+    customer_feature = relationship("CustomerFeature", back_populates="customer", uselist=False, cascade="all, delete-orphan")
+    churn_prediction = relationship("ChurnPrediction", back_populates="customer", uselist=False, cascade="all, delete-orphan")
+

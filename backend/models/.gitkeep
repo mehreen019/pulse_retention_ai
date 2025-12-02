@@ -1,0 +1,3 @@
+# This directory stores trained ML models
+# Models are saved as: {organization_id}/churn_model.pkl
+
