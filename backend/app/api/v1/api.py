@@ -3,6 +3,9 @@ from app.api.v1.endpoints import audios, auth, emails, analytics, roi, email_his
 # Temporarily disabled churn endpoint due to missing pandas dependency
 # from app.api.v1.endpoints import churn
 
+from app.api.v1.endpoints import audios, auth, churn, churn_v2, segmentation, behavior
+
+
 api_router_v1 = APIRouter()
 
 # api_router_v1.include_router(audios.router, prefix="/audios", tags=["audios"])
@@ -12,3 +15,7 @@ api_router_v1.include_router(email_history.router, prefix="/email-history", tags
 api_router_v1.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router_v1.include_router(roi.router, prefix="/roi", tags=["roi"])
 # api_router_v1.include_router(churn.router, prefix="/churn", tags=["churn-prediction"])
+api_router_v1.include_router(churn.router, prefix="/churn", tags=["churn-prediction-v1"])
+api_router_v1.include_router(churn_v2.router, prefix="/churn/v2", tags=["churn-prediction-v2"])
+api_router_v1.include_router(segmentation.router, prefix="/segmentation", tags=["customer-segmentation"])
+api_router_v1.include_router(behavior.router, prefix="/behavior", tags=["behavior-analysis"])
