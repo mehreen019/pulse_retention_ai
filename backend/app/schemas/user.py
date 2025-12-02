@@ -9,6 +9,8 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: Optional[str] = Role.USER.value
+    org_name: str
+    org_type: str  # Will be validated as OrgType enum
 
 
 class UserLogin(BaseModel):
