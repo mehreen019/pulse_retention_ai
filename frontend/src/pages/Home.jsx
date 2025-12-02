@@ -1,115 +1,400 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
-import Button from '../components/Button'
 
 const Home = () => {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
+  const [activePage, setActivePage] = useState('dashboard')
+  const [hoveredItem, setHoveredItem] = useState(null)
 
   const handleLogout = () => {
     logout()
     navigate('/')
   }
 
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+    { id: 'email', label: 'Email Campaign', icon: '📧' },
+    { id: 'analytics', label: 'Analytics', icon: '📈' },
+    { id: 'roi', label: 'ROI Dashboard', icon: '💰' }
+  ]
+
+  const handleMenuClick = (id) => {
+    setActivePage(id)
+    if (id === 'email') navigate('/email-campaign')
+    if (id === 'analytics') navigate('/analytics')
+    if (id === 'roi') navigate('/roi-dashboard')
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Welcome, {user?.name || 'User'}!</h1>
-            <Button onClick={handleLogout} variant="danger">
-              Logout
-            </Button>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+      {/* Header */}
+      <div
+        style={{
+          backgroundColor: '#1e293b',
+          color: 'white',
+          padding: '20px 40px',
+          borderBottom: '3px solid #667eea',
+        }}
+      >
+        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 'bold' }}>
+          Pulse Retention AI
+        </h1>
+        <p style={{ margin: '5px 0 0 0', color: '#cbd5e1' }}>
+          Customer Intelligence & Retention Platform
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 100px)' }}>
+        {/* Sidebar */}
+        <div
+          style={{
+            width: '250px',
+            backgroundColor: '#334155',
+            color: 'white',
+            padding: '30px 20px',
+            borderRight: '1px solid #cbd5e1',
+          }}
+        >
+          <div style={{ marginBottom: '30px' }}>
+            <h3 style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#cbd5e1' }}>
+              FEATURES
+            </h3>
+            {menuItems.map((item) => (
+              <div
+                key={item.id}
+                onClick={() => handleMenuClick(item.id)}
+                onMouseEnter={() => setHoveredItem(item.id)}
+                onMouseLeave={() => setHoveredItem(null)}
+                style={{
+                  cursor: 'pointer',
+                  padding: '12px 12px',
+                  marginBottom: '8px',
+                  borderRadius: '6px',
+                  backgroundColor: activePage === item.id ? '#475569' : (hoveredItem === item.id ? '#3f4a57' : 'transparent'),
+                  color: activePage === item.id ? '#667eea' : 'white',
+                  fontWeight: activePage === item.id ? '600' : '400',
+                  transition: 'all 0.2s ease',
+                  borderLeft: activePage === item.id ? '3px solid #667eea' : '3px solid transparent',
+                  paddingLeft: activePage === item.id ? '9px' : '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+              >
+                <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                <span>{item.label}</span>
+              </div>
+            ))}
           </div>
 
-          <div className="space-y-4">
-            <div className="border-b pb-4">
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">User Information</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600">Name</p>
-                  <p className="text-lg font-medium text-gray-900">{user?.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Email</p>
-                  <p className="text-lg font-medium text-gray-900">{user?.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Role</p>
-                  <p className="text-lg font-medium text-gray-900 capitalize">{user?.role || 'user'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Status</p>
-                  <p className="text-lg font-medium">
-                    <span className={`px-2 py-1 rounded-full text-sm ${
-                      user?.is_active 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user?.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 border-t pt-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <button
-                  onClick={() => navigate('/email-campaign')}
-                  className="p-6 bg-blue-50 border-2 border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 transition-all text-left"
-                >
-                  <div className="flex items-center mb-2">
-                    <svg className="w-6 h-6 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    <h3 className="text-lg font-semibold text-gray-900">Email Campaign</h3>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Send personalized emails to customer segments
-                  </p>
-                </button>
-
-                <button
-                  onClick={() => navigate('/analytics')}
-                  className="p-6 bg-purple-50 border-2 border-purple-200 rounded-lg hover:bg-purple-100 hover:border-purple-300 transition-all text-left"
-                >
-                  <div className="flex items-center mb-2">
-                    <svg className="w-6 h-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    <h3 className="text-lg font-semibold text-gray-900">Analytics</h3>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    View customer insights and churn predictions
-                  </p>
-                </button>
-
-                <button
-                  onClick={() => navigate('/roi-dashboard')}
-                  className="p-6 bg-green-50 border-2 border-green-200 rounded-lg hover:bg-green-100 hover:border-green-300 transition-all text-left"
-                >
-                  <div className="flex items-center mb-2">
-                    <svg className="w-6 h-6 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                    <h3 className="text-lg font-semibold text-gray-900">ROI Dashboard</h3>
-                  </div>
-                  <p className="text-sm text-gray-600">
-                    Track business ROI and profit metrics
-                  </p>
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <p className="text-gray-600">
-                You are successfully authenticated and can access protected routes.
-              </p>
-            </div>
+          <div
+            style={{
+              marginTop: '40px',
+              padding: '15px',
+              backgroundColor: '#475569',
+              borderRadius: '8px',
+              fontSize: '13px',
+            }}
+          >
+            <p style={{ margin: '0 0 8px 0', color: '#e2e8f0' }}>
+              👤 <strong>{user?.name || 'User'}</strong>
+            </p>
+            <p style={{ margin: '0 0 8px 0', color: '#cbd5e1', fontSize: '12px' }}>
+              {user?.email}
+            </p>
+            <p style={{ margin: '0 0 8px 0', color: '#cbd5e1', fontSize: '12px' }}>
+              Role: <strong className="capitalize">{user?.role || 'user'}</strong>
+            </p>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: '100%',
+                marginTop: '12px',
+                padding: '8px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: '600',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#dc2626'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#ef4444'}
+            >
+              Logout
+            </button>
           </div>
         </div>
+
+        {/* Main Content */}
+        <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
+          {/* Welcome Section */}
+          <div style={{ marginBottom: '40px' }}>
+            <h2 style={{ margin: '0 0 10px 0', fontSize: '32px', color: '#1e293b' }}>
+              Welcome back, {user?.name || 'User'}! 👋
+            </h2>
+            <p style={{ margin: '0', color: '#64748b', fontSize: '16px' }}>
+              Here's your account summary and quick actions
+            </p>
+          </div>
+
+          {/* User Status Cards */}
+          {activePage === 'dashboard' && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '20px',
+                marginBottom: '40px',
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: 'white',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  borderLeft: '4px solid #667eea',
+                }}
+              >
+                <div style={{ color: '#64748b', fontSize: '13px', marginBottom: '8px' }}>
+                  Account Status
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b' }}>
+                  {user?.is_active ? 'Active' : 'Inactive'}
+                </div>
+                <div style={{ 
+                  color: '#94a3b8', 
+                  fontSize: '12px', 
+                  marginTop: '8px',
+                  display: 'inline-block',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  backgroundColor: user?.is_active ? '#dcfce7' : '#fee2e2'
+                }}>
+                  {user?.is_active ? '✓ Account Active' : '⚠ Account Inactive'}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: 'white',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  borderLeft: '4px solid #10b981',
+                }}
+              >
+                <div style={{ color: '#64748b', fontSize: '13px', marginBottom: '8px' }}>
+                  Role
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', textTransform: 'capitalize' }}>
+                  {user?.role || 'User'}
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '8px' }}>
+                  Administrator Access
+                </div>
+              </div>
+
+              <div
+                style={{
+                  backgroundColor: 'white',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  borderLeft: '4px solid #f59e0b',
+                }}
+              >
+                <div style={{ color: '#64748b', fontSize: '13px', marginBottom: '8px' }}>
+                  Contact Email
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e293b', wordBreak: 'break-all' }}>
+                  {user?.email}
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '8px' }}>
+                  Primary contact
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Feature Cards */}
+          {activePage === 'dashboard' && (
+            <div
+              style={{
+                backgroundColor: 'white',
+                padding: '30px',
+                borderRadius: '12px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                marginBottom: '40px',
+              }}
+            >
+              <h3
+                style={{
+                  margin: '0 0 20px 0',
+                  fontSize: '18px',
+                  color: '#1e293b',
+                  fontWeight: 'bold',
+                }}
+              >
+                Available Features
+              </h3>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                  gap: '20px',
+                }}
+              >
+                <div
+                  onClick={() => handleMenuClick('email')}
+                  style={{
+                    padding: '20px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    backgroundColor: '#f8f9fa',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f0f4ff'
+                    e.currentTarget.style.borderColor = '#667eea'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8f9fa'
+                    e.currentTarget.style.borderColor = '#e2e8f0'
+                  }}
+                >
+                  <div style={{ fontSize: '28px', marginBottom: '10px' }}>📧</div>
+                  <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Email Campaign</div>
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                    Send personalized emails to customer segments
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => handleMenuClick('analytics')}
+                  style={{
+                    padding: '20px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    backgroundColor: '#f8f9fa',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f0f4ff'
+                    e.currentTarget.style.borderColor = '#667eea'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8f9fa'
+                    e.currentTarget.style.borderColor = '#e2e8f0'
+                  }}
+                >
+                  <div style={{ fontSize: '28px', marginBottom: '10px' }}>📈</div>
+                  <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>Analytics</div>
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                    View customer insights and churn predictions
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => handleMenuClick('roi')}
+                  style={{
+                    padding: '20px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    backgroundColor: '#f8f9fa',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f0f4ff'
+                    e.currentTarget.style.borderColor = '#667eea'
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8f9fa'
+                    e.currentTarget.style.borderColor = '#e2e8f0'
+                  }}
+                >
+                  <div style={{ fontSize: '28px', marginBottom: '10px' }}>💰</div>
+                  <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '8px' }}>ROI Dashboard</div>
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                    Track business ROI and profit metrics
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Recent Activity */}
+          {activePage === 'dashboard' && (
+            <div
+              style={{
+                backgroundColor: 'white',
+                padding: '30px',
+                borderRadius: '12px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              }}
+            >
+              <h3
+                style={{
+                  margin: '0 0 20px 0',
+                  fontSize: '18px',
+                  color: '#1e293b',
+                  fontWeight: 'bold',
+                }}
+              >
+                Quick Start Guide
+              </h3>
+              <div style={{ display: 'grid', gap: '15px' }}>
+                <div style={{ padding: '15px', backgroundColor: '#f0f4ff', borderRadius: '8px', borderLeft: '3px solid #667eea' }}>
+                  <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '5px' }}>
+                    1️⃣ Set Up Your First Campaign
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                    Navigate to Email Campaign to create targeted customer engagement campaigns.
+                  </div>
+                </div>
+                <div style={{ padding: '15px', backgroundColor: '#f0fdf4', borderRadius: '8px', borderLeft: '3px solid #10b981' }}>
+                  <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '5px' }}>
+                    2️⃣ Monitor Performance
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                    Check Analytics to see customer insights and churn predictions.
+                  </div>
+                </div>
+                <div style={{ padding: '15px', backgroundColor: '#fffbf0', borderRadius: '8px', borderLeft: '3px solid #f59e0b' }}>
+                  <div style={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '5px' }}>
+                    3️⃣ Track ROI
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                    Use ROI Dashboard to measure business impact and profitability.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        style={{
+          backgroundColor: '#1e293b',
+          color: '#cbd5e1',
+          padding: '20px 40px',
+          textAlign: 'center',
+          borderTop: '1px solid #334155',
+        }}
+      >
+        <p style={{ margin: 0, fontSize: '13px' }}>
+          © 2025 Pulse Retention AI. All rights reserved. | Customer Intelligence Platform
+        </p>
       </div>
     </div>
   )
