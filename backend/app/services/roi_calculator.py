@@ -32,23 +32,64 @@ def get_high_risk_high_value_customers(org_id: uuid.UUID, db: Session) -> List[C
     Returns:
         List of CustomerPrediction objects sorted by monetary_score (descending)
     """
-    # Get all predictions for organization with churn > 80%
-    predictions = db.query(CustomerPrediction).filter(
-        CustomerPrediction.organization_id == org_id,
-        cast(CustomerPrediction.churn_probability, Float) > 0.80
-    ).all()
+    # Get predictions from the LATEST batch for this organization
+    from app.db.models.prediction_batch import PredictionBatch
     
-    if not predictions:
+    # Find the most recent completed batch
+    latest_batch = db.query(PredictionBatch).filter(
+        PredictionBatch.organization_id == org_id,
+        PredictionBatch.status == "completed"
+    ).order_by(PredictionBatch.completed_at.desc()).first()
+    
+    if not latest_batch:
+        print(f"[ROI Calculator] No completed prediction batches found for org {org_id}")
         return []
     
-    # Extract monetary_score from features JSON and attach to objects
+    # Get predictions from that batch
+    predictions = db.query(CustomerPrediction).filter(
+        CustomerPrediction.organization_id == org_id,
+        CustomerPrediction.batch_id == latest_batch.id
+    ).all()
+    
+    print(f"[ROI Calculator] Using batch {latest_batch.id} (completed: {latest_batch.completed_at})")
+    
+    print(f"[ROI Calculator] Total predictions for org {org_id}: {len(predictions)}")
+    
+    if not predictions:
+        print(f"[ROI Calculator] No predictions found for org {org_id}")
+        return []
+    
+    # Filter by churn > 80% and extract monetary_score
     customers_with_monetary = []
+    high_churn_count = 0
+    
     for pred in predictions:
-        if pred.features and isinstance(pred.features, dict):
-            monetary_score = pred.features.get('monetary_score', 0)
-            # Store as attribute for sorting
-            pred.monetary_value = float(monetary_score) if monetary_score else 0.0
-            customers_with_monetary.append(pred)
+        try:
+            # Convert string churn_probability to float
+            churn_prob = float(pred.churn_probability) if pred.churn_probability else 0.0
+            
+            # Only include high-risk customers (churn > 80%)
+            if churn_prob > 0.80:
+                high_churn_count += 1
+                if pred.features and isinstance(pred.features, dict):
+                    monetary_score = pred.features.get('monetary_score', 0)
+                    # Store as attribute for sorting
+                    pred.monetary_value = float(monetary_score) if monetary_score else 0.0
+                    pred.churn_prob_float = churn_prob
+                    customers_with_monetary.append(pred)
+                else:
+                    print(f"[ROI Calculator] Prediction {pred.id} has churn {churn_prob} but no features")
+        except (ValueError, TypeError) as e:
+            # Skip records with invalid churn_probability
+            print(f"[ROI Calculator] Error processing prediction {pred.id}: {e}")
+            continue
+    
+    print(f"[ROI Calculator] High churn (>80%) customers: {high_churn_count}")
+    print(f"[ROI Calculator] High churn WITH monetary data: {len(customers_with_monetary)}")
+    
+    if not customers_with_monetary:
+        print(f"[ROI Calculator] No high-value, high-risk customers found")
+        return []
     
     # Sort by monetary_score descending
     sorted_customers = sorted(
@@ -130,6 +171,9 @@ def get_roi_metrics(org_id: uuid.UUID, timeframe: str, db: Session) -> Dict[str,
     # Get high-risk, high-value customers
     high_value_customers = get_high_risk_high_value_customers(org_id, db)
     
+    # Debug: Log customer count
+    print(f"[ROI Calculator] Found {len(high_value_customers)} high-risk, high-value customers for org {org_id}")
+    
     # Calculate ROI
     roi_data = calculate_retention_roi(high_value_customers)
     
@@ -158,7 +202,6 @@ def get_roi_metrics(org_id: uuid.UUID, timeframe: str, db: Session) -> Dict[str,
         "netProfit": roi_data["netProfit"],
         "roiPercentage": roi_data["roiPercentage"],
         "avgCustomerLTV": int(avg_customer_ltv),
-        "costPerAcquisition": 0,  # Not applicable for retention
         "costPerRetention": int(cost_per_retention),
         "paybackPeriod": payback_period,
         "breakEvenDate": break_even_date,
