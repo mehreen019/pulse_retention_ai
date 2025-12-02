@@ -8,6 +8,7 @@ from app.core.security import verify_password, get_password_hash, create_access_
 from app.core.config import settings
 from app.core.roles import Role
 from app.db.models.user import User
+from app.db.models.organization import Organization, OrgType
 from app.schemas.user import UserCreate, UserLogin, UserResponse, Token
 
 router = APIRouter()
@@ -33,6 +34,15 @@ def signup(
     except ValueError:
         user_role = Role.USER
     
+    # Validate org_type
+    try:
+        org_type = OrgType(user_data.org_type.lower())
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid org_type. Must be one of: {[e.value for e in OrgType]}"
+        )
+    
     # Create new user
     hashed_password = get_password_hash(user_data.password)
     new_user = User(
@@ -44,6 +54,17 @@ def signup(
     )
     
     db.add(new_user)
+    db.flush()  # Flush to get the user ID without committing
+    
+    # Create organization with same ID as user
+    new_org = Organization(
+        id=new_user.id,  # Use same ID as user
+        name=user_data.org_name,
+        org_type=org_type,
+        churn_threshold_days=60  # Default to 60 as specified
+    )
+    
+    db.add(new_org)
     db.commit()
     db.refresh(new_user)
     
