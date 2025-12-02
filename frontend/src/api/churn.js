@@ -167,9 +167,6 @@ export const churnAPI = {
     const response = await client.post(
       `/segmentation/organizations/${orgId}/segment`,
       null,
-      {
-        params: batchId ? { batch_id: batchId } : {}
-      }
     )
     return response.data
   },

@@ -56,6 +56,7 @@ export default function ChurnPrediction() {
   const [behaviorStatus, setBehaviorStatus] = useState(null);
   const [behaviorResults, setBehaviorResults] = useState(null);
   const [behaviorLoading, setBehaviorLoading] = useState(false);
+  const [behaviorLimit, setBehaviorLimit] = useState('');
 
   // Error handling
   const [error, setError] = useState(null);
@@ -407,7 +408,8 @@ export default function ChurnPrediction() {
     setError(null);
 
     try {
-      const response = await churnAPI.analyzeBehaviors(user.id);
+      const limit = behaviorLimit ? parseInt(behaviorLimit) : null;
+      const response = await churnAPI.analyzeBehaviors(user.id, limit);
 
       if (response.success) {
         setBehaviorStatus('completed');
@@ -439,10 +441,7 @@ export default function ChurnPrediction() {
       handleSegmentCustomers(selectedBatch);
     }
     
-    // Auto-start behavior analysis when entering step 6
-    if (currentStep === 6 && !behaviorLoading && !behaviorResults) {
-      handleAnalyzeBehaviors();
-    }
+    // Don't auto-start behavior analysis - let user set limit first
     
     // Load predictions when entering step 6 (for the table)
     if (currentStep === 6 && selectedBatch && predictions.length === 0) {
@@ -918,6 +917,29 @@ export default function ChurnPrediction() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Analyzing customer behaviors and generating retention recommendations
             </p>
+
+            {!behaviorLoading && !behaviorResults && (
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Limit (Optional - Leave empty to analyze all customers)
+                  </label>
+                  <Input
+                    type="number"
+                    value={behaviorLimit}
+                    onChange={(e) => setBehaviorLimit(e.target.value)}
+                    placeholder="e.g., 100"
+                    min="1"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    💡 Tip: Start with a smaller number (e.g., 50-100) for faster testing
+                  </p>
+                </div>
+                <Button onClick={handleAnalyzeBehaviors} className="w-full">
+                  Start Behavior Analysis
+                </Button>
+              </div>
+            )}
 
             {behaviorLoading && (
               <div className="flex items-center justify-center py-12">

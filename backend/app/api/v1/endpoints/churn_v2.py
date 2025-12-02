@@ -791,7 +791,6 @@ async def get_batch_predictions(
     Returns:
         List of predictions with customer_id, probability, risk segment, segment, and recommendations
     """
-    from app.db.models.customer import Customer
     from app.db.models.customer_segment import CustomerSegment
     from app.db.models.behavior_analysis import BehaviorAnalysis
     
@@ -810,20 +809,17 @@ async def get_batch_predictions(
         )
 
     # Get predictions with joined segmentation and behavior data
+    # Note: customer_id in CustomerSegment and BehaviorAnalysis now stores external_customer_id directly
     predictions = db.query(
         CustomerPrediction,
-        Customer,
         CustomerSegment,
         BehaviorAnalysis
     ).outerjoin(
-        Customer,
-        Customer.external_customer_id == CustomerPrediction.external_customer_id
-    ).outerjoin(
         CustomerSegment,
-        CustomerSegment.customer_id == Customer.id
+        CustomerSegment.customer_id == CustomerPrediction.external_customer_id
     ).outerjoin(
         BehaviorAnalysis,
-        BehaviorAnalysis.customer_id == Customer.id
+        BehaviorAnalysis.customer_id == CustomerPrediction.external_customer_id
     ).filter(
         CustomerPrediction.batch_id == batch_id
     ).limit(limit).offset(offset).all()
@@ -845,7 +841,7 @@ async def get_batch_predictions(
                 "features": pred.features,
                 "predicted_at": pred.predicted_at
             }
-            for pred, customer, segment, behavior in predictions
+            for pred, segment, behavior in predictions
         ]
     }
 

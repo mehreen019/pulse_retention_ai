@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import UUID
 
-from app.db.models.customer import Customer
 from app.db.models.transaction import Transaction
 from app.db.models.organization import Organization
 from app.db.models.behavior_analysis import BehaviorAnalysis, OrgType
@@ -237,7 +236,7 @@ def calculate_behavior_score(metrics: Dict[str, Any]) -> float:
 
 
 def analyze_customer(
-    customer_id: UUID,
+    customer_id: str,  # Changed to str since it's now external_customer_id
     org_type: str,
     db: Session
 ) -> Dict[str, Any]:
@@ -245,7 +244,7 @@ def analyze_customer(
     Analyze customer behavior based on organization type.
 
     Args:
-        customer_id: Customer UUID
+        customer_id: Customer external ID (string)
         org_type: Organization type ('banking', 'telecom', 'ecommerce')
         db: Database session
 
@@ -255,12 +254,8 @@ def analyze_customer(
     Raises:
         ValueError: If customer not found or invalid org_type
     """
-    # Get customer
-    customer = db.query(Customer).filter(Customer.id == customer_id).first()
-    if not customer:
-        raise ValueError(f"Customer {customer_id} not found")
-
-    # Get transactions
+    # Get transactions using external_customer_id
+    # Note: Transaction table stores external_customer_id in customer_id column as string
     transactions = db.query(Transaction).filter(
         Transaction.customer_id == customer_id
     ).order_by(Transaction.event_date).all()
@@ -268,8 +263,7 @@ def analyze_customer(
     if not transactions:
         # Return default analysis for customers with no transactions
         return {
-            'customer_id': str(customer_id),
-            'organization_id': str(customer.organization_id),
+            'customer_id': customer_id,
             'org_type': org_type,
             'behavior_score': 0.0,
             'activity_trend': 'unknown',
@@ -308,8 +302,7 @@ def analyze_customer(
     recommendations = generate_recommendations(filtered_risk_signals, org_type)
 
     return {
-        'customer_id': str(customer_id),
-        'organization_id': str(customer.organization_id),
+        'customer_id': customer_id,
         'org_type': org_type,
         'behavior_score': behavior_score,
         'activity_trend': metrics['activity_trend'],
@@ -345,25 +338,29 @@ def batch_analyze_behaviors(
 
         org_type = org.org_type.value if hasattr(org.org_type, 'value') else org.org_type
 
-        # Get all customers (with optional limit)
-        query = db.query(Customer).filter(
-            Customer.organization_id == organization_id
-        )
+        # Get customer_ids from CustomerSegment table (which has external_customer_ids)
+        from app.db.models.customer_segment import CustomerSegment
+        
+        query = db.query(CustomerSegment.customer_id).filter(
+            CustomerSegment.organization_id == organization_id
+        ).distinct()
 
         if limit is not None and limit > 0:
             query = query.limit(limit)
 
-        customers = query.all()
+        customer_segments = query.all()
+        
+        # Extract customer_ids (which are external_customer_ids as strings)
+        customer_ids = [seg.customer_id for seg in customer_segments]
 
-        total_customers = len(customers)
-        customer_ids = [c.id for c in customers]
-
+        total_customers = len(customer_ids)
         limit_msg = f" (limited to {limit})" if limit else ""
         print(f"Analyzing behavior for {total_customers} customers{limit_msg} (org_type: {org_type})...")
 
         # Get existing analyses and clean up duplicates
         existing_analyses = db.query(BehaviorAnalysis).filter(
-            BehaviorAnalysis.customer_id.in_(customer_ids)
+            BehaviorAnalysis.customer_id.in_(customer_ids),
+            BehaviorAnalysis.organization_id == organization_id
         ).all()
 
         # Build lookup and handle duplicates by keeping only the most recent
@@ -410,17 +407,17 @@ def batch_analyze_behaviors(
         analyses_to_update = []
         processed_customer_ids = set()  # Track processed customers to prevent duplicates
 
-        for _, customer in enumerate(customers, 1):
+        for customer_id in customer_ids:
             try:
                 # Skip if already processed in this batch
-                if customer.id in processed_customer_ids:
+                if customer_id in processed_customer_ids:
                     continue
 
-                # Analyze customer
-                analysis_data = analyze_customer(customer.id, org_type, db)
+                # Analyze customer (using external_customer_id directly)
+                analysis_data = analyze_customer(customer_id, org_type, db)
 
                 # Check if analysis already exists
-                existing_analysis = existing_analyses_lookup.get(customer.id)
+                existing_analysis = existing_analyses_lookup.get(customer_id)
 
                 if existing_analysis:
                     # Prepare update data as dictionary
@@ -438,9 +435,9 @@ def batch_analyze_behaviors(
                     }
                     analyses_to_update.append(update_data)
                 else:
-                    # Create new analysis object
+                    # Create new analysis object (using external_customer_id directly)
                     new_analysis = BehaviorAnalysis(
-                        customer_id=customer.id,
+                        customer_id=customer_id,  # Using external_customer_id directly as string
                         organization_id=organization_id,
                         org_type=org_type,
                         behavior_score=analysis_data['behavior_score'],
@@ -454,7 +451,7 @@ def batch_analyze_behaviors(
                     analyses_to_add.append(new_analysis)
 
                 # Mark customer as processed
-                processed_customer_ids.add(customer.id)
+                processed_customer_ids.add(customer_id)
                 analyzed += 1
 
                 # Progress indicator
@@ -462,7 +459,7 @@ def batch_analyze_behaviors(
                     print(f"  Processed {analyzed}/{total_customers} customers...")
 
             except Exception as e:
-                error_msg = f"Error analyzing customer {customer.id}: {str(e)}"
+                error_msg = f"Error analyzing customer {customer_id}: {str(e)}"
                 errors.append(error_msg)
                 continue
 
