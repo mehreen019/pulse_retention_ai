@@ -263,7 +263,7 @@ Drop-in JavaScript widget that displays personalized offers on your customer web
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/pulse_retention_ai.git
+git clone https://github.com/mehreen019/pulse_retention_ai
 cd pulse_retention_ai
 ```
 
