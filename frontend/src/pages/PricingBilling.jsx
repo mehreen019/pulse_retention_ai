@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
+import { paymentAPI } from '../api/payment';
 import bkashLogo from '/bkash_logo.png';
 import nagadLogo from '/nagad_logo.jpg';
 
@@ -17,10 +19,12 @@ const XCircleIcon = ({ className }) => (
 );
 
 const PricingBilling = () => {
+  const navigate = useNavigate();
   const [billingCycle, setBillingCycle] = useState('monthly'); // monthly or yearly
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('card'); // card, bkash, nagad
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const plans = [
     {
@@ -99,10 +103,35 @@ const PricingBilling = () => {
     setShowPaymentModal(true);
   };
 
-  const handlePayment = () => {
-    // Handle payment logic here
-    alert(`Processing payment via ${paymentMethod.toUpperCase()} for ${selectedPlan.name} plan`);
-    setShowPaymentModal(false);
+  const handlePayment = async () => {
+    if (!selectedPlan) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      // All payment methods (bkash, nagad, card) go through SSLCommerz
+      // SSLCommerz will show the appropriate payment method interface
+      const response = await paymentAPI.initiatePayment(
+        selectedPlan.id,
+        billingCycle,
+        paymentMethod  // Pass the selected method (bkash, nagad, or card)
+      );
+      
+      // Store plan info in sessionStorage for callback
+      sessionStorage.setItem('pending_subscription', JSON.stringify({
+        planId: selectedPlan.id,
+        billingCycle: billingCycle,
+        paymentId: response.payment_id
+      }));
+      
+      // Redirect to SSLCommerz payment page
+      // SSLCommerz will show the payment method options (bKash, Nagad, Card, etc.)
+      window.location.href = response.payment_url;
+    } catch (error) {
+      console.error('Payment initiation error:', error);
+      alert(`Failed to initiate payment: ${error.response?.data?.detail || error.message}`);
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -283,7 +312,7 @@ const PricingBilling = () => {
               </label>
               <div className="space-y-2">
                 {/* Card Payment */}
-                <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${paymentMethod === 'card' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
                   <input
                     type="radio"
                     name="payment"
@@ -295,14 +324,14 @@ const PricingBilling = () => {
                   <div className="flex items-center flex-1">
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900 dark:text-white text-sm">Credit/Debit Card</p>
-                      <p className="text-xs text-gray-500">Visa, Mastercard, Amex</p>
+                      <p className="text-xs text-gray-500">Visa, Mastercard, Amex via SSLCommerz</p>
                     </div>
                     <div className="text-xl">💳</div>
                   </div>
                 </label>
 
                 {/* bKash */}
-                <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${paymentMethod === 'bkash' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
                   <input
                     type="radio"
                     name="payment"
@@ -314,14 +343,14 @@ const PricingBilling = () => {
                   <div className="flex items-center flex-1">
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900 dark:text-white text-sm">bKash</p>
-                      <p className="text-xs text-gray-500">Mobile payment</p>
+                      <p className="text-xs text-gray-500">Via SSLCommerz</p>
                     </div>
                     <img src={bkashLogo} alt="bKash" className="h-6 w-auto" />
                   </div>
                 </label>
 
                 {/* Nagad */}
-                <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <label className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-colors ${paymentMethod === 'nagad' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
                   <input
                     type="radio"
                     name="payment"
@@ -333,7 +362,7 @@ const PricingBilling = () => {
                   <div className="flex items-center flex-1">
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900 dark:text-white text-sm">Nagad</p>
-                      <p className="text-xs text-gray-500">Mobile payment</p>
+                      <p className="text-xs text-gray-500">Via SSLCommerz</p>
                     </div>
                     <img src={nagadLogo} alt="Nagad" className="h-6 w-auto" />
                   </div>
@@ -351,9 +380,10 @@ const PricingBilling = () => {
               </button>
               <button
                 onClick={handlePayment}
-                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm"
+                disabled={isProcessing}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Proceed to Payment
+                {isProcessing ? 'Processing...' : 'Proceed to Payment'}
               </button>
             </div>
           </div>

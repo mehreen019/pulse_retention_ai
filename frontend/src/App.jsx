@@ -14,6 +14,7 @@ import ROIDashboard from './pages/ROIDashboard'
 import ChurnPrediction from './pages/ChurnPrediction'
 import Predictions from './pages/Predictions'
 import PricingBilling from './pages/PricingBilling'
+import SSLCommerzCallback from './pages/SSLCommerzCallback'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -78,6 +79,22 @@ function App() {
         <Route path="/pricing-billing" element={
           <ProtectedRoute>
             <PricingBilling />
+          </ProtectedRoute>
+        } />
+        {/* SSLCommerz handles all payment methods (bKash, Nagad, Card) */}
+        <Route path="/payment/sslcommerz/success" element={
+          <ProtectedRoute>
+            <SSLCommerzCallback />
+          </ProtectedRoute>
+        } />
+        <Route path="/payment/sslcommerz/fail" element={
+          <ProtectedRoute>
+            <SSLCommerzCallback />
+          </ProtectedRoute>
+        } />
+        <Route path="/payment/sslcommerz/cancel" element={
+          <ProtectedRoute>
+            <SSLCommerzCallback />
           </ProtectedRoute>
         } />
         <Route path="/" element={<Landing />} />
