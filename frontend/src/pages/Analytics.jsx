@@ -343,8 +343,8 @@ const Analytics = () => {
           </p>
         </div>
       </div>
-    </div>
-    </div>
+      </div>
+  </Layout>
   )
 }
 

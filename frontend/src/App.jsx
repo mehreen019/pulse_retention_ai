@@ -13,6 +13,7 @@ import Analytics from './pages/Analytics'
 import ROIDashboard from './pages/ROIDashboard'
 import ChurnPrediction from './pages/ChurnPrediction'
 import Predictions from './pages/Predictions'
+import PricingBilling from './pages/PricingBilling'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -72,6 +73,11 @@ function App() {
         <Route path="/predictions" element={
           <ProtectedRoute>
             <Predictions />
+          </ProtectedRoute>
+        } />
+        <Route path="/pricing-billing" element={
+          <ProtectedRoute>
+            <PricingBilling />
           </ProtectedRoute>
         } />
         <Route path="/" element={<Landing />} />
