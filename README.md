@@ -39,8 +39,7 @@
 - **Measure**: Real-time ROI tracking and profitability analytics
 - **Embed**: Drop-in widget for customer websites
 
-![alt text](image.png)
-
+[Screenshot Placeholder: Dashboard Overview]
 
 ---
 
@@ -50,12 +49,7 @@
 
 Train machine learning models to predict which customers are likely to churn.
 
-![alt text](592553472_2563911773984183_4382146762067553048_n.png)
-![alt text](589732685_1387697583047903_851271651144958577_n.png)
-![alt text](566555926_1555914082411946_4181245515468885411_n.png)
-![alt text](591768346_1955761224987430_7253955058426345134_n.png)
-![alt text](591668863_1525948568545009_5675560535199518306_n.png)
-![alt text](592211983_1334186128395850_4877457455526860092_n.png)
+[Screenshot Placeholder: Churn Prediction Dashboard]
 
 **Key Capabilities:**
 - **RFM Feature Engineering**: Recency, Frequency, Monetary, and Engagement scores
@@ -77,7 +71,7 @@ Train machine learning models to predict which customers are likely to churn.
 
 Intelligently segment customers into 11 actionable business categories.
 
-![alt text](591782006_844962491456558_7578038808081617737_n.png)
+[Screenshot Placeholder: Customer Segments]
 
 **11 Business Segments:**
 
@@ -106,6 +100,7 @@ Intelligently segment customers into 11 actionable business categories.
 
 Industry-specific behavioral pattern detection and risk signal identification.
 
+[Screenshot Placeholder: Behavioral Insights]
 
 **Industry-Specific Analysis:**
 
@@ -143,6 +138,7 @@ Each customer receives:
 
 AI-powered email campaigns with personalized offers based on customer segments and churn risk.
 
+[Screenshot Placeholder: Campaign Creation]
 
 **Campaign Features:**
 - **AI Content Generation**: Google Gemini-powered email copy
@@ -165,7 +161,7 @@ AI-powered email campaigns with personalized offers based on customer segments a
 
 Real-time financial metrics and profitability tracking for retention efforts.
 
-![alt text](image-1.png)
+[Screenshot Placeholder: ROI Dashboard]
 
 **Key Metrics:**
 - **Total Revenue**: Revenue from retained customers
@@ -196,7 +192,8 @@ ROI % = (Net Profit / Retention Cost) × 100
 ### 6. 🔌 Embeddable Widget
 
 Drop-in JavaScript widget that displays personalized offers on your customer websites.
-![alt text](591615741_1561579641646303_696043233555799182_n.png)
+
+[Screenshot Placeholder: Widget on Customer Site]
 
 **Widget Features:**
 - **Zero Dependencies**: Pure JavaScript, <5KB
