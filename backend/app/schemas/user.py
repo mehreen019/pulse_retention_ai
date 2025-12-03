@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+import uuid
 from app.core.roles import Role
 
 
@@ -8,6 +9,8 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: Optional[str] = Role.USER.value
+    org_name: str
+    org_type: str  # Will be validated as OrgType enum
 
 
 class UserLogin(BaseModel):
@@ -16,7 +19,7 @@ class UserLogin(BaseModel):
 
 
 class UserResponse(BaseModel):
-    id: int
+    id: uuid.UUID
     name: str
     email: str
     role: str
