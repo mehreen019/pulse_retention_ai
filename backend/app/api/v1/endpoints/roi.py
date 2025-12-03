@@ -5,12 +5,17 @@ Calculates real ROI based on churn predictions and RFM monetary values.
 from fastapi import APIRouter, HTTPException, Depends, status, Query
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 import uuid
 
-from app.api.deps import get_current_active_user, get_db
+from app.api.deps import get_db, get_current_active_user
 from app.db.models.user import User
-from app.db.models.prediction_batch import PredictionBatch, CustomerPrediction
+from app.services.roi_calculator import (
+    get_roi_metrics as calc_roi_metrics,
+    get_profit_trend as calc_profit_trend,
+    get_cost_breakdown as calc_cost_breakdown,
+    get_campaign_roi as calc_campaign_roi,
+    get_retention_savings as calc_retention_savings
+)
 
 router = APIRouter()
 
