@@ -582,7 +582,7 @@ const WidgetCustomerTable = ({
                       Generating...
                     </span>
                   ) : (
-                    '🎯 Preview Widget Popup'
+                    'Preview Widget Popup'
                   )}
                 </button>
               </td>
