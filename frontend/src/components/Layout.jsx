@@ -87,7 +87,9 @@ const Layout = ({ children, activePage }) => {
             color: 'white',
             padding: '30px 20px',
             borderRight: '1px solid #475569',
-            boxShadow: '2px 0 8px rgba(0, 0, 0, 0.1)'
+            boxShadow: '2px 0 8px rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            flexDirection: 'column'
           }}
         >
           <div style={{ marginBottom: '30px' }}>
@@ -135,67 +137,116 @@ const Layout = ({ children, activePage }) => {
 
           <div
             style={{
-              marginTop: '40px',
-              padding: '18px',
-              backgroundColor: '#475569',
-              borderRadius: '10px',
+              marginTop: 'auto',
+              padding: '20px',
+              background: 'linear-gradient(135deg, #475569 0%, #334155 100%)',
+              borderRadius: '12px',
               fontSize: '13px',
-              border: '1px solid #64748b'
+              border: '1px solid #64748b',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{
-                width: '36px',
-                height: '36px',
+                width: '44px',
+                height: '44px',
                 borderRadius: '50%',
-                backgroundColor: '#667eea',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexShrink: 0
+                flexShrink: 0,
+                boxShadow: '0 4px 8px rgba(102, 126, 234, 0.3)',
+                border: '2px solid rgba(255, 255, 255, 0.1)'
               }}>
-                <HiUser style={{ fontSize: '18px', color: 'white' }} />
+                <HiUser style={{ fontSize: '20px', color: 'white' }} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, color: '#e2e8f0', fontWeight: '600', fontSize: '14px' }}>
+                <p style={{ 
+                  margin: 0, 
+                  color: '#f1f5f9', 
+                  fontWeight: '700', 
+                  fontSize: '15px',
+                  letterSpacing: '-0.3px'
+                }}>
                   {user?.name || 'User'}
                 </p>
-                <p style={{ margin: '4px 0 0 0', color: '#cbd5e1', fontSize: '11px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ 
+                  margin: '4px 0 0 0', 
+                  color: '#94a3b8', 
+                  fontSize: '12px', 
+                  overflow: 'hidden', 
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
                   {user?.email}
                 </p>
               </div>
             </div>
-            <p style={{ margin: '0 0 12px 0', color: '#cbd5e1', fontSize: '12px', paddingLeft: '46px' }}>
-              Role: <strong className="capitalize" style={{ color: '#e2e8f0' }}>{user?.role || 'user'}</strong>
-            </p>
+            <div style={{ 
+              marginBottom: '16px',
+              padding: '8px 12px',
+              backgroundColor: 'rgba(102, 126, 234, 0.15)',
+              borderRadius: '8px',
+              border: '1px solid rgba(102, 126, 234, 0.2)'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                gap: '8px'
+              }}>
+                <span style={{ 
+                  color: '#cbd5e1', 
+                  fontSize: '11px', 
+                  fontWeight: '500',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px'
+                }}>
+                  Role
+                </span>
+                <span className="capitalize" style={{ 
+                  color: '#f1f5f9', 
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  padding: '4px 10px',
+                  backgroundColor: 'rgba(102, 126, 234, 0.3)',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(102, 126, 234, 0.4)'
+                }}>
+                  {user?.role || 'user'}
+                </span>
+              </div>
+            </div>
             <button
               onClick={handleLogout}
               style={{
                 width: '100%',
-                marginTop: '8px',
-                padding: '10px',
-                backgroundColor: '#ef4444',
+                padding: '12px 16px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                 color: 'white',
                 border: 'none',
-                borderRadius: '6px',
+                borderRadius: '8px',
                 cursor: 'pointer',
                 fontSize: '13px',
                 fontWeight: '600',
-                transition: 'all 0.2s',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.25)',
+                letterSpacing: '0.3px'
               }}
               onMouseOver={(e) => {
-                e.target.style.backgroundColor = '#dc2626'
-                e.target.style.transform = 'translateY(-1px)'
-                e.target.style.boxShadow = '0 4px 8px rgba(239, 68, 68, 0.3)'
+                e.target.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)'
+                e.target.style.transform = 'translateY(-2px)'
+                e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.4)'
               }}
               onMouseOut={(e) => {
-                e.target.style.backgroundColor = '#ef4444'
+                e.target.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                 e.target.style.transform = 'translateY(0)'
-                e.target.style.boxShadow = 'none'
+                e.target.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.25)'
               }}
             >
               <HiLogout style={{ fontSize: '16px' }} />
