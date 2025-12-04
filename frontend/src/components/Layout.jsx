@@ -20,6 +20,7 @@ const Layout = ({ children, activePage }) => {
     if (path === '/analytics') return 'analytics'
     if (path === '/roi-dashboard') return 'roi'
     if (path === '/pricing-billing') return 'pricing'
+    if (path === '/csv-normalization') return 'csv-normalization'
     return 'dashboard'
   })()
 
@@ -32,6 +33,7 @@ const Layout = ({ children, activePage }) => {
     { id: 'dashboard', label: 'Dashboard', icon: '📊', path: '/dashboard' },
     { id: 'churn', label: 'Churn Prediction', icon: '🎯', path: '/churn-prediction' },
     { id: 'predictions', label: 'Predictions', icon: '📋', path: '/predictions' },
+    { id: 'csv-normalization', label: 'CSV Normalization', icon: '📝', path: '/csv-normalization' },
     { id: 'email', label: 'Email Campaign', icon: '📧', path: '/email-campaign' },
     { id: 'widget', label: 'Widget Campaign', icon: '🔔', path: '/widget-campaign' },
     { id: 'history', label: 'Email History', icon: '📜', path: '/email-history' },
