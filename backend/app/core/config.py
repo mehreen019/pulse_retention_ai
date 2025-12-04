@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = os.getenv("SUPABASE_URL")
     SUPABASE_ANON_KEY:str = os.getenv("SUPABASE_ANON_KEY")
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", os.getenv("GOOGLE_API_KEY", ""))
     
     # JWT Settings
     SECRET_KEY: str = os.getenv("SECRET_KEY", token_urlsafe(32))
